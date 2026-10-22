@@ -454,11 +454,11 @@ function graphLabWidget(el, cfg = {}) {
   const nIn = h("input", { type: "number", value: cfg.n ?? 5, min: 0, max: 9, style: "width:4em" });
   const gSel = h("select", {}, ...["count a's mod k", "length mod k"].map((k) => h("option", { value: k }, k)));
   gSel.value = cfg.G ?? "count a's mod k";
-  let x = cfg.x ?? 0, y = cfg.y ?? 1, es = [], cur = 0;
+  let x = cfg.x ?? 0, y = cfg.y ?? 1, es = [], cur = 0, setting = "x";
   const diag = h("div", { class: "diagram" }), pad = h("div"), out = h("div");
   el.append(row(field("blocks D =", Din)), row(field("states S = ℤ/", kIn), field("update G", gSel), field("max word length", nIn)),
-    h("p", { class: "small muted" }, "Click a state to set the start x; shift-click (or long-press) to set the target y. Each block e is one edge s → G e s, so a word of graph D G x y is the label of a path from x to y whose edges are whole blocks."),
-    diag, pad, out);
+    h("p", { class: "small muted" }, "Each block e is one edge s → G e s, so a word of graph D G x y is the label of a path from x to y whose edges are whole blocks. Pick which endpoint a click moves, then click a state:"),
+    h("div", { class: "row", id: "xysel" }), diag, pad, out);
 
   function draw(k, G, D) {
     const R = 17, cx = 160, cy = 86, rad = k === 1 ? 0 : Math.min(58, 22 + 13 * k);
@@ -492,7 +492,7 @@ function graphLabWidget(el, cfg = {}) {
     const here = tr[Math.min(cur, es.length)];
     pos.forEach(([px, py], i) => {
       const c = svg("circle", { cx: px, cy: py, r: R, fill: i === here ? "#3a4a20" : "#2f302a", stroke: i === y ? "#66d9ef" : i === x ? "#f92672" : "#75715e", "stroke-width": i === x || i === y ? 2.4 : 1.4, class: "statedot" });
-      c.addEventListener("click", (ev) => { if (ev.shiftKey) y = i; else x = i; cur = 0; run(); });
+      c.addEventListener("click", (ev) => { if (ev.shiftKey || setting === "y") y = i; else x = i; cur = 0; run(); });
       c.addEventListener("contextmenu", (ev) => { ev.preventDefault(); y = i; run(); });
       g.append(c);
       g.append(svg("text", { x: px, y: py + 4, class: "slab" }, document.createTextNode(String(i))));
@@ -508,6 +508,11 @@ function graphLabWidget(el, cfg = {}) {
     x %= k; y %= k;
     const spec = GS[gSel.value](k), G = spec.G;
     const n = Math.min(+nIn.value || 0, 9);
+    const xy = el.querySelector("#xysel");
+    xy.innerHTML = "";
+    xy.append(h("span", { class: "small muted" }, "a click sets:"),
+      btn(`start x (now ${x})`, () => { setting = "x"; run(); }, { class: setting === "x" ? "primary" : "" }),
+      btn(`target y (now ${y})`, () => { setting = "y"; run(); }, { class: setting === "y" ? "primary" : "" }));
     diag.innerHTML = ""; diag.append(draw(k, G, D));
     const tr = updateTrace(G, x, es);
     pad.innerHTML = "";

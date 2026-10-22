@@ -117,6 +117,7 @@ textarea.prompt { height: 10rem; font-family: ui-monospace, monospace; font-size
 /* diagrams */
 .diagram { margin: .4rem 0; }
 svg.dfa { width: 100%; max-width: 420px; height: auto; display: block; }
+svg.dfa text { pointer-events: none; }
 svg.dfa text.slab { fill: var(--fg); font: 600 11px ui-monospace, monospace; text-anchor: middle; }
 svg.dfa text.elab { font: 10px ui-monospace, monospace; text-anchor: middle; }
 svg.dfa circle.statedot { cursor: pointer; }

@@ -5,6 +5,7 @@ import { parse, height, show, toLean, subterms, atPath, replaceAt, singletonExpr
 import { DFAS, cloneDFA, evalFrom, trace, accepts, endo, mulEndo, imageMonoid, fullMonoidSize } from "../assets/automata.js";
 import { isPrefix, prefixCode, inRemainder, allIn, flatten, updateWord, updateTrace, candidates, factor, graphWords } from "../assets/episodes.js";
 import { MONOIDS, basis, zeroVec, addVec, eqVec, actionMatrix, applyAction, valueRecovery, trackTrace, checkMonoid } from "../assets/vectors.js";
+import { stepper, clampStep } from "../assets/dom.js";   // uses `document` only inside its functions
 
 const A = ["a", "b"];
 let n = 0;
@@ -275,6 +276,26 @@ t("updateWord_product: the vector tracks the running product", () => {
       assert.equal(tr[tr.length - 1].prod, ds.reduce((p, d) => M.mul(p, d), 0), name);
     }
   }
+});
+
+
+// ---------------------------------------------------------------- dom: the stepper contract
+// Several widgets re-render themselves from the stepper's callback, so the stepper must not
+// fire it while being constructed — that recursed forever in an earlier revision.
+t("stepper clamps, and does not fire onset on construction", () => {
+  const mk = () => ({ children: [], className: "", textContent: "", nodeType: 1,
+    setAttribute() {}, addEventListener() {}, append(...k) { this.children.push(...k); } });
+  globalThis.document = { createElement: mk, createTextNode: (s) => ({ nodeType: 3, textContent: String(s) }) };
+  assert.equal(clampStep(-3, 5), 0);
+  assert.equal(clampStep(9, 5), 5);
+  assert.equal(clampStep(2, 5), 2);
+  const calls = [];
+  const st = stepper(3, (i) => calls.push(i), 7);
+  assert.deepEqual(calls, [], "onset must not fire during construction");
+  assert.equal(st.index, 3, "i0 is clamped to total");
+  st.go(1); st.go(-5); st.go(99);
+  assert.deepEqual(calls, [1, 0, 3]);
+  delete globalThis.document;
 });
 
 console.log(`widget logic: all ${n} test groups passed`);

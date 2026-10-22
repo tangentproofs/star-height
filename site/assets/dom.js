@@ -32,16 +32,20 @@ export const yes = (b, y = "yes", n = "no") =>
 export const parseAlphabet = (s) => [...new Set([...String(s).replace(/[\s,{}]/g, "")])].filter((c) => /[a-z]/.test(c));
 export const parseList = (s) => String(s).split(/[\s,]+/).filter(Boolean).map((x) => (x === "ε" || x === "[]" ? "" : x));
 
-// Buttons that step through a sequence: ⏮ ◀ ▶ with a counter. `onset(i)` is called with the index.
+export const clampStep = (i, total) => Math.max(0, Math.min(total, i));
+
+// Buttons that step through a sequence: ⏮ ◀ ▶ with a counter. `onset(i)` runs on each press.
+// It is deliberately NOT called during construction: callers that re-render themselves from
+// `onset` would otherwise recurse forever when the re-render rebuilds the stepper. Render the
+// state for `i0` yourself.
 export function stepper(total, onset, i0 = 0) {
-  let i = i0;
-  const label = h("span", { class: "small muted" });
-  const go = (k) => { i = Math.max(0, Math.min(total, k)); label.textContent = ` step ${i} / ${total}`; onset(i); };
+  let i = clampStep(i0, total);
+  const label = h("span", { class: "small muted" }, ` step ${i} / ${total}`);
+  const go = (k) => { i = clampStep(k, total); label.textContent = ` step ${i} / ${total}`; onset(i); };
   const bar = h("div", { class: "row steps" },
     btn("⏮", () => go(0), { title: "reset" }),
     btn("◀", () => go(i - 1), { title: "back" }),
     btn("▶", () => go(i + 1), { title: "forward", class: "primary" }),
     label);
-  go(i0);
   return { bar, go, get index() { return i; } };
 }
