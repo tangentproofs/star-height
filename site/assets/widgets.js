@@ -1,21 +1,12 @@
 // Interactive demos. Each widget is mount(el, config) and is self-contained.
-import { parse, height, toLean, wordsUpTo, tree, show, maxN, shortlex } from "./regex.js";
-
-const h = (tag, attrs = {}, ...kids) => {
-  const el = document.createElement(tag);
-  for (const [k, v] of Object.entries(attrs)) {
-    if (k === "class") el.className = v;
-    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
-    else if (k === "html") el.innerHTML = v;
-    else el.setAttribute(k, v);
-  }
-  for (const c of kids.flat()) if (c != null) el.append(c.nodeType ? c : document.createTextNode(String(c)));
-  return el;
-};
-const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
-const wordSpan = (w, cls = "") => `<span class="${cls}">${w === "" ? "ε" : esc(w)}</span>`;
-const field = (label, input) => h("label", {}, label + " ", input);
-const parseAlphabet = (s) => [...new Set([...s.replace(/[\s,{}]/g, "")])].filter((c) => /[a-z]/.test(c));
+// The hands-on ones live in widgets-interactive.js; the pure logic they share lives in
+// regex.js / automata.js / episodes.js / vectors.js (tested by tools/test_widgets.mjs).
+import { parse, height, toLean, wordsUpTo, tree, show, maxN } from "./regex.js";
+import { DFAS, imageMonoid } from "./automata.js";
+import { prefixCode, allIn, flatten, factor, graphWords, updateTrace } from "./episodes.js";
+import { MONOIDS, basis, applyAction } from "./vectors.js";
+import { h, esc, wordSpan, field, parseAlphabet, parseList } from "./dom.js";
+import { INTERACTIVE } from "./widgets-interactive.js";
 
 // ---------------------------------------------------------------- regex
 function regexWidget(el, cfg = {}) {
@@ -87,25 +78,6 @@ function compareWidget(el, cfg = {}) {
 }
 
 // ---------------------------------------------------------------- dfa-monoid
-const DFAS = {
-  "even number of a's": { A: ["a", "b"], Q: ["even", "odd"], start: 0, accept: [0], d: { a: [1, 0], b: [0, 1] } },
-  "contains ab": { A: ["a", "b"], Q: ["0", "1", "2"], start: 0, accept: [2], d: { a: [1, 1, 2], b: [0, 2, 2] } },
-  "ends with b": { A: ["a", "b"], Q: ["0", "1"], start: 0, accept: [1], d: { a: [0, 0], b: [1, 1] } },
-  "(ab)*": { A: ["a", "b"], Q: ["0", "1", "dead"], start: 0, accept: [0], d: { a: [1, 2, 2], b: [2, 0, 2] } },
-};
-function transitionMonoid(D) {
-  const id = D.Q.map((_, i) => i);
-  const key = (f) => f.join(",");
-  const elems = [{ f: id, w: "" }];
-  const seen = new Map([[key(id), 0]]);
-  for (let k = 0; k < elems.length; k++)
-    for (const a of D.A) {
-      const g = elems[k].f.map((q) => D.d[a][q]); // read w then a
-      if (!seen.has(key(g))) { seen.set(key(g), elems.length); elems.push({ f: g, w: elems[k].w + a }); }
-    }
-  const evalWord = (w) => { let f = id; for (const a of w) f = f.map((q) => D.d[a][q]); return seen.get(key(f)); };
-  return { elems, evalWord, mul: (i, j) => seen.get(key(elems[i].f.map((q) => elems[j].f[q]))) };
-}
 function dfaMonoidWidget(el, cfg = {}) {
   const sel = h("select", {}, Object.keys(DFAS).map((k) => h("option", { value: k }, k)));
   sel.value = cfg.dfa ?? "contains ab";
@@ -114,10 +86,10 @@ function dfaMonoidWidget(el, cfg = {}) {
   el.append(h("div", { class: "row" }, field("DFA (L)", sel), field("word w", w)), out);
   function run() {
     const D = DFAS[sel.value];
-    const M = transitionMonoid(D);
+    const M = imageMonoid(D);
     const word = [...w.value.trim()].filter((c) => D.A.includes(c)).join("");
     const t = M.evalWord(word);
-    const acc = (i) => D.accept.includes(M.elems[i].f[D.start]);
+    const acc = (i) => M.inF(i);
     const head = D.Q.map((q) => `<th>${esc(q)}↦</th>`).join("");
     const rows = M.elems.map((m, i) => `<tr><td class="${i === t ? "hit" : ""}">m${i}</td><td>${wordSpan(m.w)}</td>${m.f.map((q) => `<td>${esc(D.Q[q])}</td>`).join("")}<td class="${acc(i) ? "acc" : ""}">${acc(i) ? "∈ F" : ""}</td></tr>`).join("");
     const mul = M.elems.length <= 9 ? `<details><summary class="small">multiplication table of M (row · column = read row's word, then column's)</summary><table class="t"><tr><th>·</th>${M.elems.map((_, j) => `<th>m${j}</th>`).join("")}</tr>${M.elems.map((_, i) => `<tr><th>m${i}</th>${M.elems.map((_, j) => `<td>m${M.mul(i, j)}</td>`).join("")}</tr>`).join("")}</table></details>` : "";
@@ -133,7 +105,6 @@ function dfaMonoidWidget(el, cfg = {}) {
 }
 
 // ---------------------------------------------------------------- factor
-const parseList = (s) => s.split(/[\s,]+/).filter(Boolean).map((x) => (x === "ε" || x === "[]" ? "" : x));
 function factorWidget(el, cfg = {}) {
   const E = h("input", { type: "text", value: cfg.E ?? "ab, b", class: "mono" });
   const w = h("input", { type: "text", value: cfg.word ?? "babbaa", class: "mono", style: "max-width:14rem" });
@@ -142,19 +113,10 @@ function factorWidget(el, cfg = {}) {
   function run() {
     const es = [...new Set(parseList(E.value))];
     const word = w.value.trim();
-    const hasNil = es.includes("");
-    const prefixClash = [];
-    for (const e of es) for (const f of es) if (e !== f && f.startsWith(e)) prefixClash.push([e, f]);
-    const isPC = !hasNil && !prefixClash.length;
-    let rest = word, blocks = [], choice = false;
-    if (!hasNil) {
-      for (;;) {
-        const cands = es.filter((e) => rest.startsWith(e)).sort((a, b) => a.length - b.length);
-        if (!cands.length) break;
-        if (cands.length > 1) choice = true;
-        blocks.push(cands[0]); rest = rest.slice(cands[0].length);
-      }
-    }
+    const pc = prefixCode(es);
+    const hasNil = pc.hasNil, prefixClash = pc.clashes, isPC = pc.ok;
+    const { es: blocks, r: rest, steps } = hasNil ? { es: [], r: word, steps: [] } : factor(es, word);
+    const choice = steps.some((st) => st.cands.length > 1);
     out.innerHTML = `
       <p><code>[] ∉ E</code>: ${hasNil ? "<b style='color:var(--pink)'>no</b> — then every word starts with an E-word (the empty one), so <code>remainder E</code> is empty and the factoring lemma does not apply." : "<b style='color:var(--green)'>yes</b>"}
       &nbsp; <code>PrefixCode E</code>: ${isPC ? "<b style='color:var(--green)'>yes</b>" : `<b style='color:var(--pink)'>no</b>${prefixClash.length ? ` (${prefixClash.slice(0, 3).map(([e, f]) => `${wordSpan(e)} is a prefix of ${wordSpan(f)}`).join(", ")})` : ""}`}</p>
@@ -182,13 +144,8 @@ function graphWalkWidget(el, cfg = {}) {
     const D = [...new Set(parseList(E.value))].filter((e) => e !== "");
     const K = Math.max(1, +k.value || 1), X = ((+x.value % K) + K) % K, Y = ((+y.value % K) + K) % K, N = Math.min(+n.value || 0, 10);
     const G = (e, s) => (s + [...e].filter((c) => c === "a").length) % K;
-    const found = new Map();
-    const dfs = (w, s, es) => {
-      if (s === Y && !found.has(w)) found.set(w, es);
-      for (const e of D) if (w.length + e.length <= N) dfs(w + e, G(e, s), [...es, e]);
-    };
-    if (D.length) dfs("", X, []);
-    const words = [...found.keys()].sort(shortlex);
+    const found = new Map(graphWords(D, G, X, Y, N).map(({ w, es }) => [w, es]));
+    const words = [...found.keys()];
     out.innerHTML = `<p>${words.length} word(s) of length ≤ ${N} in <code>graph D G ${X} ${Y}</code>:</p>
       <table class="t"><tr><th>w</th><th>blocks es</th><th>states visited</th></tr>${words.slice(0, 40).map((w) => {
         const es = found.get(w); let s = X; const trace = [s]; for (const e of es) { s = G(e, s); trace.push(s); }
@@ -200,11 +157,6 @@ function graphWalkWidget(el, cfg = {}) {
 }
 
 // ---------------------------------------------------------------- right-regular
-const MONOIDS = {
-  "ℤ/3 = {1, g, g²}": { names: ["1", "g", "g²"], mul: (i, j) => (i + j) % 3 },
-  "{1, 0} under ×": { names: ["1", "0"], mul: (i, j) => (i === 1 || j === 1 ? 1 : 0) },
-  "{1, a, b} with xa = a, xb = b": { names: ["1", "a", "b"], mul: (i, j) => (j === 0 ? i : j) },
-};
 function rightRegularWidget(el, cfg = {}) {
   const sel = h("select", {}, Object.keys(MONOIDS).map((k) => h("option", { value: k }, k)));
   sel.value = cfg.monoid ?? "{1, a, b} with xa = a, xb = b";
@@ -217,7 +169,7 @@ function rightRegularWidget(el, cfg = {}) {
     const M = MONOIDS[sel.value];
     dSel.innerHTML = M.names.map((nm, i) => `<option value="${i}">${nm}</option>`).join("");
     dSel.value = String(M.names.length - 1);
-    v = M.names.map((_, i) => (i === 0 ? 1 : 0));
+    v = basis(M.names.length, 0);
     vec.innerHTML = "";
     M.names.forEach((nm, i) => {
       const cb = h("input", { type: "checkbox" }); cb.checked = !!v[i];
@@ -228,8 +180,7 @@ function rightRegularWidget(el, cfg = {}) {
   }
   function run() {
     const M = MONOIDS[sel.value], d = +dSel.value, nm = M.names;
-    const img = nm.map(() => 0);
-    nm.forEach((_, m) => { if (v[m]) img[M.mul(m, d)] ^= 1; });
+    const img = applyAction(M, d, v);
     out.innerHTML = `
       <p><code>action M d</code> sends basis vector <code>basis m</code> to <code>basis (m * d)</code>:</p>
       <table class="t"><tr>${nm.map((x) => `<th>basis ${x}</th>`).join("")}</tr><tr>${nm.map((_, m) => `<td>↦ basis ${nm[M.mul(m, d)]}</td>`).join("")}</tr></table>
@@ -247,7 +198,7 @@ function outlineWidget(el, cfg = {}) {
 }
 
 const REGISTRY = { regex: regexWidget, compare: compareWidget, "dfa-monoid": dfaMonoidWidget, factor: factorWidget,
-  "graph-walk": graphWalkWidget, "right-regular": rightRegularWidget, outline: outlineWidget };
+  "graph-walk": graphWalkWidget, "right-regular": rightRegularWidget, outline: outlineWidget, ...INTERACTIVE };
 
 export function mountWidget(container, spec) {
   const box = h("div", { class: "widget" });

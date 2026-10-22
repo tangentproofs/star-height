@@ -29,7 +29,7 @@
         "additionalProperties": false,
         "required": ["type"],
         "properties": {
-          "type": { "enum": ["regex", "compare", "dfa-monoid", "factor", "graph-walk", "right-regular", "outline"] },
+          "type": { "enum": ["regex", "compare", "dfa-monoid", "factor", "graph-walk", "right-regular", "outline", "build", "lang-tree", "height-lab", "union-lab", "dfa-lab", "factor-lab", "blocks", "graph-lab", "vector-lab", "decompose", "walkthrough"] },
           "title": { "type": "string" },
           "config": { "type": "object" }
         }
