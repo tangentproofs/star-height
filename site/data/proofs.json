@@ -1,0 +1,300 @@
+{
+ "FiniteRecognition.recognized_height_three": {
+  "id": "FiniteRecognition.recognized_height_three",
+  "file": "OAI/Computability/StarHeight/Recognition.lean",
+  "from": 58,
+  "to": 97,
+  "segments": [
+   {
+    "from": 58,
+    "to": 62,
+    "title": "Feed the engine lemma the right vector space",
+    "src": "explainer",
+    "lean": "  classical\n  -- Port note (Mathlib 09a9e06): instance search no longer unifies the `Module (ZMod 2)`\n  -- instance on `V M` with the one `RightRegular.action` was elaborated against, so pass it.\n  obtain ⟨E,hE,hB,hG⟩ := @SourceSchedule.episode_linear_graphs Alphabet M (RightRegular.V M)\n    (ZMod 2) _ _ _ _ _ _ _ (Pi.Function.module M (ZMod 2) (ZMod 2)) _ T (RightRegular.action M)",
+    "note": "K = ZMod 2, V = M → ZMod 2, and ρ = right multiplication. That choice is the whole bridge from monoids to linear algebra. (The Lean passes the module instance explicitly; see its port note.)",
+    "uses": [
+     "SourceSchedule.episode_linear_graphs",
+     "RightRegular.V",
+     "RightRegular.action"
+    ],
+    "hard": true
+   },
+   {
+    "from": 63,
+    "to": 64,
+    "title": "Name the two families of pieces",
+    "src": "explainer",
+    "lean": "  let A : M → Language Alphabet := fun d => {w | w∈E∗ ∧ T (FreeMonoid.ofList w)=d}\n  let B : M → Language Alphabet := fun f => {w | w∈remainder E ∧ T (FreeMonoid.ofList w)=f}",
+    "note": "A d: words made of episodes, with value d. B f: leftovers, with value f.",
+    "uses": [
+     "EpisodeAlgebra.remainder"
+    ]
+   },
+   {
+    "from": 65,
+    "to": 69,
+    "title": "A d has height ≤ 3, because it IS a path language",
+    "src": "explainer",
+    "lean": "  have hA : ∀ d, HasHeightAtMost (A d) 3 := by\n    intro d\n    change HasHeightAtMost ({w | w∈E∗ ∧ T (FreeMonoid.ofList w)=d} : Language Alphabet) 3\n    rw [←RightRegular.graph_fiber T E d]\n    exact hG (RightRegular.basis M 1) (RightRegular.basis M d)",
+    "note": "graph_fiber turns 'in E∗ with value d' into 'moves basis 1 to basis d', which is what hG bounds.",
+    "uses": [
+     "RightRegular.graph_fiber",
+     "RightRegular.basis"
+    ]
+   },
+   {
+    "from": 70,
+    "to": 72,
+    "title": "Index the union by the pairs whose product is accepted",
+    "src": "explainer",
+    "lean": "  let I := {p : M × M // p.1*p.2∈F}\n  have hU : HasHeightAtMost (⨆ p : I, A p.1.1 * B p.1.2) 3 :=\n    HasHeightAtMost.iSup _ (fun p => (hA p.1.1).concat ((hB p.1.2).mono (by decide)))",
+    "note": "I is a subtype of M × M, so it is finite — which is exactly what iSup needs. B f has height ≤ 1 from the engine; mono raises it to 3 (1 ≤ 3, so the same witness expression works).",
+    "uses": [
+     "HasHeightAtMost.iSup",
+     "HasHeightAtMost.concat",
+     "HasHeightAtMost.mono"
+    ]
+   },
+   {
+    "from": 73,
+    "to": 76,
+    "title": "Claim: the recognized language is exactly that union",
+    "src": "draft",
+    "lean": "  have heq : ({w | T (FreeMonoid.ofList w)∈F} : Language Alphabet)=\n      ⨆ p : I, A p.1.1 * B p.1.2 := by\n    ext w\n    constructor",
+    "note": "Prove the two sets equal word by word, one inclusion at a time."
+   },
+   {
+    "from": 77,
+    "to": 90,
+    "title": "⊆: factor w, and its two values multiply to T w",
+    "src": "explainer",
+    "lean": "    · intro hw\n      obtain ⟨es,r,hes,hr,hwr⟩ := factor_remainder hE.1 w\n      let d := T (FreeMonoid.ofList es.flatten)\n      let f := T (FreeMonoid.ofList r)\n      have hdf : d*f∈F := by\n        change T (FreeMonoid.ofList es.flatten)*T (FreeMonoid.ofList r)∈F\n        rw [←map_mul]\n        change T (FreeMonoid.ofList (es.flatten++r))∈F\n        rw [←hwr]\n        exact hw\n      apply Language.mem_iSup.mpr\n      refine ⟨⟨(d,f),hdf⟩,Language.mem_mul.mpr ⟨es.flatten,?_,r,?_,hwr.symm⟩⟩\n      · exact ⟨Language.join_mem_kstar hes,rfl⟩\n      · exact ⟨hr,rfl⟩",
+    "note": "Only hE.1 ([] ∉ E) is used here, not the full prefix-code property.",
+    "uses": [
+     "EpisodeAlgebra.factor_remainder",
+     "EpisodeAlgebra.PrefixCode"
+    ]
+   },
+   {
+    "from": 91,
+    "to": 96,
+    "title": "⊇: a word in any piece has value d·f, which is in F by construction",
+    "src": "explainer",
+    "lean": "    · intro hw\n      obtain ⟨p,hp⟩ := Language.mem_iSup.mp hw\n      obtain ⟨a,ha,b,hb,rfl⟩ := Language.mem_mul.mp hp\n      change T (FreeMonoid.ofList a * FreeMonoid.ofList b)∈F\n      rw [map_mul,ha.2,hb.2]\n      exact p.2"
+   },
+   {
+    "from": 97,
+    "to": 97,
+    "title": "Rewrite the language as that union and hand back hU",
+    "src": "explainer",
+    "lean": "  exact heq.symm ▸ hU"
+   }
+  ]
+ },
+ "SourceSchedule.episode_linear_graphs": {
+  "id": "SourceSchedule.episode_linear_graphs",
+  "file": "OAI/Computability/StarHeight/EpisodeHeight.lean",
+  "from": 215,
+  "to": 257,
+  "segments": [
+   {
+    "from": 215,
+    "to": 216,
+    "title": "Set up",
+    "src": "draft",
+    "lean": "  classical\n  let : Fintype Alphabet := Fintype.ofFinite Alphabet",
+    "note": "Work classically, and treat the alphabet as an explicit finite type."
+   },
+   {
+    "from": 217,
+    "to": 220,
+    "title": "A shift table for every product table",
+    "src": "draft",
+    "lean": "  obtain ⟨g,hg,hs₁⟩ := exists_shift_table (A := M) (K := K) (S := V)\n  let β : M → M → (Fin g → M) → V := fun a c => (hs₁ (ClockAffine.productTable ρ a c)).choose\n  have hβ : ∀ a c, ShiftTableProperty g (ClockAffine.productTable ρ a c) (β a c) :=\n    fun a c => (hs₁ (ClockAffine.productTable ρ a c)).choose_spec",
+    "note": "exists_shift_table gives a size g and, for each pair a, c, a solution β a c of the shift-table property for ClockAffine.productTable ρ a c (over V).",
+    "uses": [
+     "exists_shift_table",
+     "ClockAffine.productTable",
+     "ShiftTableProperty"
+    ]
+   },
+   {
+    "from": 221,
+    "to": 225,
+    "title": "A second shift table, for the observed inner tables",
+    "src": "draft",
+    "lean": "  obtain ⟨g',hg',hs₂⟩ := exists_shift_table (A := M) (K := K) (S := V × K)\n  let γ : (M → (V × K →ₗ[K] V × K)) → (Fin g' → M) → V × K :=\n    fun ψ => (hs₂ (ObservedInner.table ψ)).choose\n  have hγ : ∀ ψ, ShiftTableProperty g' (ObservedInner.table ψ) (γ ψ) :=\n    fun ψ => (hs₂ (ObservedInner.table ψ)).choose_spec",
+    "note": "The same lemma over V × K gives g' and γ, solving the shift-table property for every ObservedInner.table ψ.",
+    "uses": [
+     "exists_shift_table",
+     "ObservedInner.table"
+    ]
+   },
+   {
+    "from": 226,
+    "to": 232,
+    "title": "Enough copies, and the roster",
+    "src": "draft",
+    "lean": "  let κ := Fintype.card (Kind M (V × K) K g')\n  obtain ⟨μ,hμpos,hμ⟩ := exists_copies (M := M) (S := V) g κ (by omega)\n  let P := Roster M (V × K) K g' μ\n  let B := SlotResidues.slotModulus P\n  have hB : 0<B := SlotResidues.slotModulus_pos P\n  have hμ' : 20*(10000000*Real.log (2*Fintype.card (Tag M V g B))+4*(g+1))+10<μ := by\n    simpa only [B,SlotResidues.slotModulus,P,Fintype.card_prod,Fintype.card_fin,κ] using hμ",
+    "note": "κ counts the kinds of inner table. exists_copies picks a positive number of copies μ; hμ' restates its guarantee as an explicit numeric lower bound on μ. P is the roster with μ copies, and B its slot modulus, which is positive.",
+    "uses": [
+     "SplitMetadata.exists_copies",
+     "SplitMetadata.Roster",
+     "SlotResidues.slotModulus",
+     "SlotResidues.slotModulus_pos"
+    ]
+   },
+   {
+    "from": 233,
+    "to": 234,
+    "title": "A robust clock",
+    "src": "draft",
+    "lean": "  let : Nonempty (Tag M V g B) := ⟨Sum.inr ⟨0,⟨0,hB⟩,1,0,0⟩⟩\n  obtain ⟨clock⟩ := RobustClock.exists_clock (Tag M V g B) P",
+    "note": "Exhibit one tag, so the tag type is non-empty; RobustClock.exists_clock then gives a clock for the roster P.",
+    "uses": [
+     "RobustClock.exists_clock",
+     "SplitMetadata.Tag"
+    ]
+   },
+   {
+    "from": 235,
+    "to": 238,
+    "title": "Every slot index is used; fix a reference roster entry",
+    "src": "draft",
+    "lean": "  have honto : Function.Surjective (fun i : P => i.1.j) := by\n    intro j\n    exact ⟨(⟨j,0,0,fun _ => 1,fun _ => 0⟩,⟨0,hμpos⟩),rfl⟩\n  let reference : P := (⟨⟨0,by omega⟩,0,0,fun _ => 1,fun _ => 0⟩,⟨0,hμpos⟩)",
+    "note": "honto: the map from roster entries to their slot index is onto. reference is one particular entry."
+   },
+   {
+    "from": 239,
+    "to": 242,
+    "title": "Early and late schedules",
+    "src": "draft",
+    "lean": "  obtain ⟨S⟩ := exists_early (Alphabet := Alphabet) clock B (Fintype.card M) hB\n    (fun i : P => i.1.j) honto (SlotResidues.reserved P)\n  obtain ⟨L⟩ := S.exists_full_late hB g\n  let A := S.parameters g L hB",
+    "note": "exists_early builds an early schedule S from the clock; exists_full_late extends it to a full late schedule L. A collects the resulting parameters.",
+    "uses": [
+     "SourceSchedule.exists_early",
+     "SourceSchedule.Early.exists_full_late",
+     "SourceSchedule.Early.parameters"
+    ]
+   },
+   {
+    "from": 243,
+    "to": 246,
+    "title": "The main cut of slot 0 is an offset",
+    "src": "draft",
+    "lean": "  let j : Fin g := ⟨0,by omega⟩\n  have hr : (S.cuts g).main j∈(S.cuts g).offsets := by\n    simpa only [OuterStream.Cuts.base,Nat.cast_zero,zero_mul,add_zero] using\n      (S.cuts g).offset_mem (.inl j) 0 S.R_pos",
+    "note": "Pick slot j = 0 and check that its main cut is among the offsets, as the next step needs.",
+    "uses": [
+     "OuterStream.Cuts.offset_mem"
+    ]
+   },
+   {
+    "from": 247,
+    "to": 248,
+    "title": "The outer graph languages have height ≤ 3",
+    "src": "draft",
+    "lean": "  have hG := S.outer_graph_height L hB T ρ β γ\n    (SlotResidues.reserved_distinct P) hμ' hβ hγ reference ((S.cuts g).main j) hr",
+    "note": "outer_graph_height, fed everything built so far, gives hG: a height-≤ 3 bound for every x, y. The 3 in the theorem comes from this step.",
+    "uses": [
+     "SourceSchedule.Early.outer_graph_height",
+     "SlotResidues.reserved_distinct"
+    ],
+    "hard": true
+   },
+   {
+    "from": 249,
+    "to": 253,
+    "title": "Affine recovery: from the outer graphs to the linear path languages",
+    "src": "draft",
+    "lean": "  have hlin := AffineRecovery.recovery_height (L.endRule.prefix_code L.lag) le_rfl\n    (fun w => (ρ (T w)).toAddMonoidHom) (OuterStream.wordShift A clock T ρ β L.lag) 3\n    (fun x y => by\n      rw [←OuterStream.wordUpdate_affine A clock T ρ β L.lag]\n      exact hG x y)",
+    "note": "recovery_height turns hG into hlin: the path languages of ρ ∘ T over the late end rule's episodes have height ≤ 3. Its hypothesis is hG, after rewriting with wordUpdate_affine.",
+    "uses": [
+     "AffineRecovery.recovery_height",
+     "OuterStream.wordUpdate_affine"
+    ]
+   },
+   {
+    "from": 254,
+    "to": 254,
+    "title": "The episodes: the end rule's complete words",
+    "src": "draft",
+    "lean": "  refine ⟨L.endRule.complete L.lag,L.endRule.prefix_code L.lag,?_,hlin⟩",
+    "note": "Choose E = the complete episodes of the late schedule's end rule. It is a prefix code, and hlin is the third claim; the leftover bound remains.",
+    "uses": [
+     "CanonicalEpisodes.Parameters.complete",
+     "CanonicalEpisodes.Parameters.prefix_code"
+    ]
+   },
+   {
+    "from": 255,
+    "to": 257,
+    "title": "Output 2: leftovers sorted by value have height ≤ 1",
+    "src": "draft",
+    "lean": "  intro d\n  exact L.endRule.remainder_fiber_height T d L.lag\n    (fun f b he => (S.episode_visible g L hB he).base)",
+    "note": "remainder_fiber_height gives the bound for each value d; its visibility side condition is episode_visible.",
+    "uses": [
+     "CanonicalEpisodes.Parameters.remainder_fiber_height",
+     "SourceSchedule.Early.episode_visible"
+    ]
+   }
+  ]
+ },
+ "main": {
+  "id": "main",
+  "file": "OAI/Computability/StarHeight/Main.lean",
+  "from": 11,
+  "to": 28,
+  "segments": [
+   {
+    "from": 11,
+    "to": 12,
+    "title": "Go classical, then split on whether the alphabet has any letters",
+    "src": "explainer",
+    "lean": "  classical\n  rcases isEmpty_or_nonempty Alphabet with h|h",
+    "note": "The only case split in the whole proof."
+   },
+   {
+    "from": 13,
+    "to": 19,
+    "title": "Empty alphabet: L is finite, because the only word is []",
+    "src": "explainer",
+    "lean": "  · let : IsEmpty Alphabet := h\n    apply HasHeightAtMost.finite L _ 3\n    apply (Set.finite_singleton ([] : List Alphabet)).subset\n    intro w _\n    cases w with\n    | nil => rfl\n    | cons a w => exact isEmptyElim a",
+    "note": "A non-empty word would need a first letter, and there are none. So L ⊆ {[]}.",
+    "uses": [
+     "HasHeightAtMost.finite"
+    ]
+   },
+   {
+    "from": 20,
+    "to": 23,
+    "title": "Non-empty alphabet: trade the DFA for a finite monoid",
+    "src": "explainer",
+    "lean": "  · let : Nonempty Alphabet := h\n    obtain ⟨M,hM,hfin,T,F,hTF⟩ := FiniteRecognition.of_regular hL\n    let : Monoid M := hM\n    let : Fintype M := hfin",
+    "note": "This is the only place the hypothesis hL : L.IsRegular is used.",
+    "uses": [
+     "FiniteRecognition.of_regular"
+    ]
+   },
+   {
+    "from": 24,
+    "to": 27,
+    "title": "Rewrite L as the words whose monoid value lands in F",
+    "src": "explainer",
+    "lean": "    have heq : L=({w | T (FreeMonoid.ofList w)∈F} : Language Alphabet) := by\n      ext w\n      exact hTF w\n    rw [heq]",
+    "note": "hTF is the membership equivalence word by word; ext turns that into equality of languages."
+   },
+   {
+    "from": 28,
+    "to": 28,
+    "title": "Every monoid-recognized language has height ≤ 3",
+    "src": "explainer",
+    "lean": "    exact FiniteRecognition.recognized_height_three T F",
+    "note": "996 of the 1,009 declarations main depends on sit underneath this one step.",
+    "uses": [
+     "FiniteRecognition.recognized_height_three"
+    ],
+    "hard": true
+   }
+  ]
+ }
+}

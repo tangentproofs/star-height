@@ -86,6 +86,8 @@ fs.mkdirSync(path.join(DIST, "data"), { recursive: true });
 fs.cpSync(path.join(SITE, "assets"), path.join(DIST, "assets"), { recursive: true });
 fs.copyFileSync(path.join(SITE, "index.html"), path.join(DIST, "index.html"));
 fs.copyFileSync(path.join(SITE, "data/decls.json"), path.join(DIST, "data/decls.json"));
+// Proof view data, generated and checked by tools/build_proof_steps.mjs (committed so the site build needs no Lean).
+if (fs.existsSync(path.join(SITE, "data/proofs.json"))) fs.copyFileSync(path.join(SITE, "data/proofs.json"), path.join(DIST, "data/proofs.json"));
 fs.writeFileSync(path.join(DIST, "data/nodes.json"), JSON.stringify(nodes));
 // Machine-readable work list for agents.
 const reachable = decls.filter((d) => d.depth !== null);

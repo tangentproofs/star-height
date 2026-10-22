@@ -1,0 +1,39 @@
+# Proof view for recognized_height_three. See main.yml for the format.
+id: FiniteRecognition.recognized_height_three
+segments:
+  - lines: [58, 62]
+    src: explainer
+    title: "Feed the engine lemma the right vector space"
+    note: "K = ZMod 2, V = M → ZMod 2, and ρ = right multiplication. That choice is the whole bridge from monoids to linear algebra. (The Lean passes the module instance explicitly; see its port note.)"
+    uses: [SourceSchedule.episode_linear_graphs, RightRegular.V, RightRegular.action]
+    hard: true
+  - lines: [63, 64]
+    src: explainer
+    title: "Name the two families of pieces"
+    note: "A d: words made of episodes, with value d. B f: leftovers, with value f."
+    uses: [EpisodeAlgebra.remainder]
+  - lines: [65, 69]
+    src: explainer
+    title: "A d has height ≤ 3, because it IS a path language"
+    note: "graph_fiber turns 'in E∗ with value d' into 'moves basis 1 to basis d', which is what hG bounds."
+    uses: [RightRegular.graph_fiber, RightRegular.basis]
+  - lines: [70, 72]
+    src: explainer
+    title: "Index the union by the pairs whose product is accepted"
+    note: "I is a subtype of M × M, so it is finite — which is exactly what iSup needs. B f has height ≤ 1 from the engine; mono raises it to 3 (1 ≤ 3, so the same witness expression works)."
+    uses: [HasHeightAtMost.iSup, HasHeightAtMost.concat, HasHeightAtMost.mono]
+  - lines: [73, 76]
+    src: draft
+    title: "Claim: the recognized language is exactly that union"
+    note: "Prove the two sets equal word by word, one inclusion at a time."
+  - lines: [77, 90]
+    src: explainer
+    title: "⊆: factor w, and its two values multiply to T w"
+    note: "Only hE.1 ([] ∉ E) is used here, not the full prefix-code property."
+    uses: [EpisodeAlgebra.factor_remainder, EpisodeAlgebra.PrefixCode]
+  - lines: [91, 96]
+    src: explainer
+    title: "⊇: a word in any piece has value d·f, which is in F by construction"
+  - lines: [97, 97]
+    src: explainer
+    title: "Rewrite the language as that union and hand back hU"

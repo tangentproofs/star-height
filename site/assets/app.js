@@ -3,17 +3,18 @@ import { mountWidget } from "./widgets.js";
 import { migrateProgress, emptyProgress, ownStatus, makeUnderstood, STATUS_ORDER, STATUS_LABEL, COLORS, PENDING_COLOR, quizScore, recordQuizResults, starString } from "./progress.js";
 import { wrapLeanLines } from "./leanlines.js";
 import { statementSet } from "./statement.js";
+import { REPO, sourceUrl, githubSourceUrl } from "./source.js";
+import { mountProofView } from "./proofview.js";
 
-const REPO = "tangentproofs/star-height";
-const BLOB = `https://github.com/${REPO}/blob/main`;
 const GISCUS = { repo: REPO, repoId: "R_kgDOVTDFdg", category: "Announcements", categoryId: "DIC_kwDOVTDFds4DJUY1" };
 const MATHLIB_DOCS = (n) => `https://leanprover-community.github.io/mathlib4_docs/find/?pattern=${encodeURIComponent(n)}#doc`;
 const app = document.getElementById("app");
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-const [decls, nodes] = await Promise.all([
+const [decls, nodes, proofs] = await Promise.all([
   fetch("data/decls.json").then((r) => r.json()),
   fetch("data/nodes.json").then((r) => r.json()),
+  fetch("data/proofs.json").then((r) => (r.ok ? r.json() : {})).catch(() => ({})),
 ]);
 const byId = new Map(decls.map((d) => [d.id, d]));
 const reachable = decls.filter((d) => d.depth !== null);
@@ -246,7 +247,7 @@ function agentPrompt(d) {
 (OpenAI's proof that every regular language has generalized star height ≤ 3).
 
 Target: ${d.name}  (${d.kind})
-Source: ${BLOB}/${d.file}#L${d.line}-L${d.endLine}
+Source: ${githubSourceUrl(d.file, d.line, d.endLine)}
 Section variables in scope: ${d.variables.join(" ") || "(none)"}
 Formal statement:
 ${d.statement}
@@ -268,7 +269,7 @@ function nodePage(id) {
   const r = rec(id);
   if (!r.viewed) { r.viewed = Date.now(); save(); }
   const links = linkMap([...d.meaningDeps, ...d.proofDeps, id]);
-  const src = `${BLOB}/${d.file}#L${d.line}-L${d.endLine}`;
+  const src = sourceUrl(d.file, d.line, d.endLine);
   const editUrl = n ? `https://github.com/${REPO}/edit/main/site/nodes/${encodeURIComponent(id)}.md`
     : `https://github.com/${REPO}/new/main/site/nodes?filename=${encodeURIComponent(id)}.md`;
   const lean = wrapLeanLines(highlight(d.statement, links), d.statement, d.truncated ? `<span class="cm"> := … (proof omitted)</span>` : "");
@@ -276,6 +277,7 @@ function nodePage(id) {
   // Layout (see .statusbar and .sbs in style.css):
   //   status bar (I think I understand this · quiz stars · colour), title, summary;
   //   plain English + widgets (left) beside the formal statement (right, sticky, lines wrap);
+  //   the proof, step by step (full width; only for nodes with data/proofs.json entries);
   //   bonus quiz; edit links; discussion. Narrow screens stack in that order.
   app.innerHTML = `
     <div class="node-head">
@@ -303,8 +305,15 @@ function nodePage(id) {
         </div>
       </div></section>
     </div>
+    ${proofs[id] ? `<section class="proof-view" id="proof"><h2>The proof, step by step</h2>
+      <p class="small muted">English for each step beside the Lean that does it. <span class="pv-src ok">explainer</span> = from this node's reviewed explainer;
+      <span class="pv-src draft">draft</span> = not reviewed yet, so check it against the Lean.</p><div id="proof-view"></div></section>` : ""}
     <div id="content"></div>`;
   document.documentElement.style.setProperty("--hdr", (document.querySelector("header.top")?.offsetHeight || 0) + "px");
+  if (proofs[id]) mountProofView(document.getElementById("proof-view"), proofs[id], {
+    highlight: (s) => highlight(s, links), nodeHref: (x) => `#/node/${encodeURIComponent(x)}`,
+    sourceUrl, storageKey: "star-height-proofview",
+  });
   const plain = document.getElementById("plain");
   const c = document.getElementById("content");
   if (!n) {

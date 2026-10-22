@@ -1,0 +1,64 @@
+# Proof view for episode_linear_graphs. See main.yml for the format.
+# The construction underneath (clocks, shift tables, schedules) has no explainers yet, so every
+# segment here is a DRAFT reading of what the Lean does, at the level of the names it uses.
+id: SourceSchedule.episode_linear_graphs
+segments:
+  - lines: [215, 216]
+    src: draft
+    title: "Set up"
+    note: "Work classically, and treat the alphabet as an explicit finite type."
+  - lines: [217, 220]
+    src: draft
+    title: "A shift table for every product table"
+    note: "exists_shift_table gives a size g and, for each pair a, c, a solution β a c of the shift-table property for ClockAffine.productTable ρ a c (over V)."
+    uses: [exists_shift_table, ClockAffine.productTable, ShiftTableProperty]
+  - lines: [221, 225]
+    src: draft
+    title: "A second shift table, for the observed inner tables"
+    note: "The same lemma over V × K gives g' and γ, solving the shift-table property for every ObservedInner.table ψ."
+    uses: [exists_shift_table, ObservedInner.table]
+  - lines: [226, 232]
+    src: draft
+    title: "Enough copies, and the roster"
+    note: "κ counts the kinds of inner table. exists_copies picks a positive number of copies μ; hμ' restates its guarantee as an explicit numeric lower bound on μ. P is the roster with μ copies, and B its slot modulus, which is positive."
+    uses: [SplitMetadata.exists_copies, SplitMetadata.Roster, SlotResidues.slotModulus, SlotResidues.slotModulus_pos]
+  - lines: [233, 234]
+    src: draft
+    title: "A robust clock"
+    note: "Exhibit one tag, so the tag type is non-empty; RobustClock.exists_clock then gives a clock for the roster P."
+    uses: [RobustClock.exists_clock, SplitMetadata.Tag]
+  - lines: [235, 238]
+    src: draft
+    title: "Every slot index is used; fix a reference roster entry"
+    note: "honto: the map from roster entries to their slot index is onto. reference is one particular entry."
+  - lines: [239, 242]
+    src: draft
+    title: "Early and late schedules"
+    note: "exists_early builds an early schedule S from the clock; exists_full_late extends it to a full late schedule L. A collects the resulting parameters."
+    uses: [SourceSchedule.exists_early, SourceSchedule.Early.exists_full_late, SourceSchedule.Early.parameters]
+  - lines: [243, 246]
+    src: draft
+    title: "The main cut of slot 0 is an offset"
+    note: "Pick slot j = 0 and check that its main cut is among the offsets, as the next step needs."
+    uses: [OuterStream.Cuts.offset_mem]
+  - lines: [247, 248]
+    src: draft
+    title: "The outer graph languages have height ≤ 3"
+    note: "outer_graph_height, fed everything built so far, gives hG: a height-≤ 3 bound for every x, y. The 3 in the theorem comes from this step."
+    uses: [SourceSchedule.Early.outer_graph_height, SlotResidues.reserved_distinct]
+    hard: true
+  - lines: [249, 253]
+    src: draft
+    title: "Affine recovery: from the outer graphs to the linear path languages"
+    note: "recovery_height turns hG into hlin: the path languages of ρ ∘ T over the late end rule's episodes have height ≤ 3. Its hypothesis is hG, after rewriting with wordUpdate_affine."
+    uses: [AffineRecovery.recovery_height, OuterStream.wordUpdate_affine]
+  - lines: [254, 254]
+    src: draft
+    title: "The episodes: the end rule's complete words"
+    note: "Choose E = the complete episodes of the late schedule's end rule. It is a prefix code, and hlin is the third claim; the leftover bound remains."
+    uses: [CanonicalEpisodes.Parameters.complete, CanonicalEpisodes.Parameters.prefix_code]
+  - lines: [255, 257]
+    src: draft
+    title: "Output 2: leftovers sorted by value have height ≤ 1"
+    note: "remainder_fiber_height gives the bound for each value d; its visibility side condition is episode_visible."
+    uses: [CanonicalEpisodes.Parameters.remainder_fiber_height, SourceSchedule.Early.episode_visible]

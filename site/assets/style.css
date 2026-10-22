@@ -200,3 +200,54 @@ a.start-link:hover { background: #20363c; text-decoration: none; }
 .card .one { margin: .4rem 0; }
 .card pre.lean { margin: .4rem 0 .5rem; }
 .mathlib-gloss li { margin: .35rem 0; }
+
+/* ---- Proof view (assets/proofview.js): English steps beside the real Lean proof ---- */
+.proof-view { margin-top: 1rem; }
+.pv-bar { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; margin: .4rem 0 .7rem; }
+.pv-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.pv-toggle button, .pv-all { background: var(--panel); color: var(--dim); border: 0; padding: .3rem .8rem; font: inherit; font-size: .85rem; cursor: pointer; }
+.pv-toggle button + button { border-left: 1px solid var(--line); }
+.pv-toggle button.on { background: var(--blue); color: #111; font-weight: 600; }
+.pv-all { border: 1px solid var(--line); border-radius: 6px; }
+.pv-toggle button:hover:not(.on), .pv-all:hover { color: var(--fg); }
+.pv-title { font-weight: 700; } .pv-num { display: inline-block; min-width: 1.6em; color: var(--dim); font-weight: 400; }
+.pv-note { margin: .2rem 0 .3rem; font-size: .93rem; }
+.pv-meta { font-size: .78rem; color: var(--dim); display: flex; flex-wrap: wrap; gap: .3rem .55rem; align-items: center; }
+.pv-src { border: 1px solid; border-radius: 999px; padding: 0 .5em; font-size: .78rem; } .pv-src.ok { color: var(--green); } .pv-src.draft { color: var(--orange); }
+.pv-lines, .pv-use { font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+.pv-hard { font-size: .72rem; color: var(--pink); border: 1px solid var(--pink); border-radius: 999px; padding: 0 .4em; font-weight: 400; }
+pre.lean.pv-lean { margin: 0; }
+.pv-more { display: block; margin: .15rem 0 0 4ch; background: none; border: 0; padding: 0; color: var(--blue); font: .8rem system-ui, sans-serif; cursor: pointer; }
+.pv-step { padding: .45rem .6rem; border-radius: 6px; cursor: pointer; border: 1px solid transparent; margin-bottom: .25rem; }
+.pv-step:hover, .pv-step.hov { background: var(--panel2); }
+.pv-step.sel { background: #332f22; border-color: var(--orange); }
+.pv-step:focus-visible, .pv-seg:focus-visible, .pv-mm:focus-visible { outline: 2px solid var(--blue); }
+/* panes */
+.pv-panes { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 1rem; height: calc(100vh - var(--hdr, 3.2rem) - 6rem); min-height: 22rem; }
+.pv-pane { overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: .5rem; }
+.pv-seg { position: relative; cursor: pointer; border-left: 3px solid transparent; padding-left: 1.6rem; }
+.pv-tag { position: absolute; left: .25rem; top: .5rem; font-size: .7rem; color: var(--dim); }
+.pv-seg pre.lean { border: 0; border-radius: 0; padding: .3rem .6rem; background: transparent; }
+.pv-seg + .pv-seg { border-top: 1px dashed var(--line); }
+.pv-seg:hover, .pv-seg.hov { background: var(--panel2); }
+.pv-seg.sel { border-left-color: var(--orange); background: #332f22; }
+/* outline + minimap */
+.pv-outline-wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 1.2rem; align-items: start; }
+.pv-outline { list-style: none; padding: 0; margin: 0; }
+.pv-outline .pv-step { border-left: 3px solid var(--line); margin-bottom: .3rem; }
+.pv-outline .pv-step.sel { border-left-color: var(--orange); }
+.pv-outline pre.lean { margin-top: .4rem; }
+.pv-peek { font-size: .8rem; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: .15rem; }
+.pv-peek code { background: none; color: var(--dim); }
+.pv-minimap { position: sticky; top: calc(var(--hdr, 3.2rem) + .5rem); max-height: calc(100vh - var(--hdr, 3.2rem) - 1rem); overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: .3rem; }
+.pv-mm { cursor: pointer; border-left: 3px solid transparent; border-radius: 3px; }
+.pv-mm + .pv-mm { border-top: 1px dashed var(--line); }
+.pv-mm pre { margin: 0; font-size: 6.5px; line-height: 1.35; color: #8f8a73; white-space: pre; overflow: hidden; padding: .1rem .3rem; }
+.pv-mm:hover { background: var(--panel2); } .pv-mm.sel { border-left-color: var(--orange); background: #3a3524; } .pv-mm.sel pre { color: var(--fg); }
+@media (max-width: 800px) {
+  .pv-panes { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 0; }
+  .pv-pane { max-height: 48vh; }
+  .pv-outline-wrap { grid-template-columns: minmax(0, 1fr); }
+  .pv-minimap { display: none; }
+  .pv-seg { padding-left: 1.3rem; }
+}

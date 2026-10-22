@@ -1,0 +1,30 @@
+# Proof view for `main`. Each segment is a range of lines in the Lean file (inclusive); the Lean text
+# itself is copied from the source by tools/build_proof_steps.mjs, never typed here.
+# src: explainer = English taken from the node's reviewed proof outline; draft = new, not yet reviewed;
+#      comment = a Lean comment in the source.
+id: main
+segments:
+  - lines: [11, 12]
+    src: explainer
+    title: "Go classical, then split on whether the alphabet has any letters"
+    note: "The only case split in the whole proof."
+  - lines: [13, 19]
+    src: explainer
+    title: "Empty alphabet: L is finite, because the only word is []"
+    note: "A non-empty word would need a first letter, and there are none. So L ⊆ {[]}."
+    uses: [HasHeightAtMost.finite]
+  - lines: [20, 23]
+    src: explainer
+    title: "Non-empty alphabet: trade the DFA for a finite monoid"
+    note: "This is the only place the hypothesis hL : L.IsRegular is used."
+    uses: [FiniteRecognition.of_regular]
+  - lines: [24, 27]
+    src: explainer
+    title: "Rewrite L as the words whose monoid value lands in F"
+    note: "hTF is the membership equivalence word by word; ext turns that into equality of languages."
+  - lines: [28, 28]
+    src: explainer
+    title: "Every monoid-recognized language has height ≤ 3"
+    note: "996 of the 1,009 declarations main depends on sit underneath this one step."
+    uses: [FiniteRecognition.recognized_height_three]
+    hard: true

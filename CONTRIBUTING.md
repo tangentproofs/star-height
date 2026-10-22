@@ -101,7 +101,7 @@ interactive types; they all run entirely in the browser with no dependencies.
 | `graph-lab` | `graph D G x y` as a graph: click the endpoints, step a block list along the edges, and list every word of length ≤ n that gets there with a witness | `D`, `k`, `x`, `y`, `n`, `G` |
 | `vector-lab` | `RightRegular`: clickable `V M` bit vectors, `basis`, the 0/1 matrix of `action M d`, and the running-product track (`updateWord_product`, `value_recovery`) | `monoid`, `show` (any of `vectors`, `basis`, `action`, `track`) |
 | `decompose` | the `recognized_height_three` set identity computed end to end: factor a word, read off d and f, check d·f ∈ F against the DFA, and count the qualifying pairs | `dfa`, `E`, `word` |
-| `walkthrough` | a proof outline showing every step; click a step for its Lean, a note, and links to the nodes it uses | `steps: [{text, lean?, note?, link?, uses?, hard?}]` |
+| `walkthrough` | an outline of steps; click a step for its Lean, a note, and links to the nodes it uses. For a *proof*, use a proof view (below) instead: it shows the real Lean, so it cannot drift | `steps: [{text, lean?, note?, link?, uses?, hard?}]` |
 
 Simpler one-shot variants, kept for compact use (the playground uses the first two):
 
@@ -114,6 +114,35 @@ Simpler one-shot variants, kept for compact use (the playground uses the first t
 | `graph-walk` | words in `graph D G x y` for G = "add #a mod k" | `E`, `k`, `x`, `y`, `n` |
 | `right-regular` | `basis` and `action` on `V M = M → ZMod 2` for small monoids | `monoid` |
 | `outline` | a vertical proof outline with links | `steps: [{text, link?, note?, hard?}]` |
+
+### Proof view: the proof step by step
+
+A theorem's node page can show its tactic proof as English steps beside the Lean that does each
+step, in two layouts the reader toggles between (linked panes, or an outline with a minimap). Write
+`site/proofs/<id>.yml`:
+
+```yaml
+id: FiniteRecognition.recognized_height_three
+segments:
+  - lines: [58, 62]          # absolute lines in the .lean file, inclusive
+    src: explainer           # explainer | draft | comment
+    title: "Feed the engine lemma the right vector space"
+    note: "Optional second sentence or two."
+    uses: [SourceSchedule.episode_linear_graphs]   # declarations this step relies on (checked)
+    hard: true               # optional: where the real work is
+```
+
+The segments must cover the proof body exactly: the first starts on the line after the one ending
+`:= by`, each starts right after the previous one, the last ends on the declaration's last line.
+The Lean text is **not** written in the YAML; `node site/tools/build_proof_steps.mjs` copies it from
+the source into `site/data/proofs.json` (commit that file). `npm test` fails on a gap, an overlap,
+an unknown `uses` id, or a `proofs.json` that no longer matches the sources, so when the Lean
+changes, fix the line ranges and regenerate.
+
+Badges are shown to readers, so be honest: `explainer` only for English taken from the node's
+reviewed explainer, `comment` for a comment in the Lean source, `draft` for anything else (including
+a new step you wrote for a reviewed node). Links from the proof view to source lines go through
+`site/assets/source.js` (`sourceUrl`), the one place to change when source pages move.
 
 **A demo must match the Lean.** Where it can only check finitely much (words up to length
 n, one hand-picked `E`, a toy monoid), say so under `caveats` and call it evidence.

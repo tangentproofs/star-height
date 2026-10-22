@@ -11,38 +11,6 @@ caveats:
   - "The history in the plain-English text (Eggan, Dejean–Schützenberger, the generalized star-height problem) is background from the literature. It is not stated in the Lean and should be checked by a human reviewer."
   - "The empty alphabet is allowed: `Finite Alphabet` holds for an empty type, and the proof treats that case separately."
 widgets:
-  - type: walkthrough
-    title: "Proof outline (Main.lean, lines 10-28)"
-    config:
-      steps:
-        - text: "Go classical, then split on whether the alphabet has any letters"
-          lean: "classical
-rcases isEmpty_or_nonempty Alphabet with h|h"
-          note: "The only case split in the whole proof."
-        - text: "Empty alphabet: L is finite, because the only word is []"
-          lean: "apply HasHeightAtMost.finite L _ 3
-apply (Set.finite_singleton ([] : List Alphabet)).subset
-intro w _
-cases w with
-| nil => rfl
-| cons a w => exact isEmptyElim a"
-          note: "A non-empty word would need a first letter, and there are none. So L ⊆ {[]}."
-          uses: [HasHeightAtMost.finite]
-        - text: "Non-empty alphabet: trade the DFA for a finite monoid"
-          lean: "obtain ⟨M,hM,hfin,T,F,hTF⟩ := FiniteRecognition.of_regular hL"
-          note: "This is the only place the hypothesis hL : L.IsRegular is used."
-          uses: [FiniteRecognition.of_regular]
-        - text: "Rewrite L as the words whose monoid value lands in F"
-          lean: "have heq : L=({w | T (FreeMonoid.ofList w)∈F} : Language Alphabet) := by
-  ext w
-  exact hTF w
-rw [heq]"
-          note: "hTF is the membership equivalence word by word; ext turns that into equality of languages."
-        - text: "Every monoid-recognized language has height ≤ 3"
-          lean: "exact FiniteRecognition.recognized_height_three T F"
-          note: "996 of the 1,009 declarations main depends on sit underneath this one step."
-          uses: [FiniteRecognition.recognized_height_three]
-          hard: true
   - type: decompose
     title: "The last step, made concrete: pick a DFA and a word"
     config: { dfa: "even number of a's", E: "aa, ab, b", word: "abba" }
@@ -87,4 +55,4 @@ Reading the Lean line by line:
 
 Why is this interesting? Without complement, regular languages can need arbitrarily deep star nesting (Eggan's star-height question, answered by Dejean and Schützenberger). With complement allowed, how much nesting is ever needed is the long-standing *generalized star-height problem*. This theorem gives a uniform answer from above: never more than three.
 
-The proof in `Main.lean` itself is short (see the outline below). The difficulty sits in [recognized_height_three](#/node/FiniteRecognition.recognized_height_three) and, beneath it, [episode_linear_graphs](#/node/SourceSchedule.episode_linear_graphs).
+The proof in `Main.lean` itself is short (see "The proof, step by step" below). The difficulty sits in [recognized_height_three](#/node/FiniteRecognition.recognized_height_three) and, beneath it, [episode_linear_graphs](#/node/SourceSchedule.episode_linear_graphs).

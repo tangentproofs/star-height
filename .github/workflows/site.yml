@@ -4,7 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
-    paths: ["site/**", ".github/workflows/site.yml"]
+    # Lean changes too: data/proofs.json copies proof text from the sources and npm test checks it for drift.
+    paths: ["site/**", "OAI/**", ".github/workflows/site.yml"]
   workflow_dispatch:
 
 permissions:
