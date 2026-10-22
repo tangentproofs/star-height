@@ -1,0 +1,16 @@
+This repository vendors Lean source from openai/math
+(https://github.com/openai/math), licensed under the Apache License 2.0
+(see LICENSE, copied verbatim from openai/math/lean/LICENSE).
+
+Vendored, unmodified, from openai/math commit
+1581d4cbdd69a0faf34b2089614fe2a814316a6a (2026-10-12):
+  lean/OAI/Computability/StarHeight/*.lean          -> OAI/Computability/StarHeight/
+  lean/ComparatorChallenges/GeneralizedStarHeight.* -> ComparatorChallenges/
+
+Changes made in this repository: build configuration (lakefile.toml,
+lean-toolchain moved from v4.34.1 to v4.35.0-rc1, Mathlib pinned to
+09a9e06e4e5ccd5b783f25e52ad3ebecfb1e2d68), plus Check.lean and documentation.
+One vendored file is patched for the newer Mathlib, in its own commit:
+  OAI/Computability/StarHeight/Recognition.lean (explicit Module (ZMod 2)
+  instance at one call site; see the "Port note" comment there).
+All other vendored .lean files are byte-identical to upstream.
