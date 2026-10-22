@@ -61,7 +61,8 @@ The explanation. Markdown, tables and inline HTML are fine. Link to other nodes 
 
 On wide screens the body sits to the left of the formal statement, so open it with a sentence or
 two that reads the statement itself: the reader compares that opening directly against the Lean
-beside it. Widgets appear further down the page, after the sign-off and the bonus quiz.
+beside it. Widgets sit in the same column, right under the text; the "I think I understand this"
+box and the quiz stars are in a bar at the top of the page, and the quiz is an optional bonus below.
 
 The schema is `site/schema/node.schema.json`. `site/tools/build_site.mjs` also checks:
 
@@ -100,7 +101,7 @@ interactive types; they all run entirely in the browser with no dependencies.
 | `graph-lab` | `graph D G x y` as a graph: click the endpoints, step a block list along the edges, and list every word of length ≤ n that gets there with a witness | `D`, `k`, `x`, `y`, `n`, `G` |
 | `vector-lab` | `RightRegular`: clickable `V M` bit vectors, `basis`, the 0/1 matrix of `action M d`, and the running-product track (`updateWord_product`, `value_recovery`) | `monoid`, `show` (any of `vectors`, `basis`, `action`, `track`) |
 | `decompose` | the `recognized_height_three` set identity computed end to end: factor a word, read off d and f, check d·f ∈ F against the DFA, and count the qualifying pairs | `dfa`, `E`, `word` |
-| `walkthrough` | a proof outline you step through, with the Lean of each step and links to the nodes it uses | `steps: [{text, lean?, note?, link?, uses?, hard?}]` |
+| `walkthrough` | a proof outline showing every step; click a step for its Lean, a note, and links to the nodes it uses | `steps: [{text, lean?, note?, link?, uses?, hard?}]` |
 
 Simpler one-shot variants, kept for compact use (the playground uses the first two):
 

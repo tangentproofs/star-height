@@ -14,7 +14,7 @@ widgets:
     title: "The set identity, computed end to end on a concrete DFA"
     config: { dfa: "contains ab", E: "aa, ab, b", word: "abba" }
   - type: walkthrough
-    title: "Step through the proof (Recognition.lean, lines 55-97)"
+    title: "Proof outline (Recognition.lean, lines 55-97)"
     config:
       steps:
         - text: "Feed the engine lemma the right vector space"

@@ -5,7 +5,8 @@ import { parse, height, show, toLean, subterms, atPath, replaceAt, singletonExpr
 import { DFAS, cloneDFA, evalFrom, trace, accepts, endo, mulEndo, imageMonoid, fullMonoidSize } from "../assets/automata.js";
 import { isPrefix, prefixCode, inRemainder, allIn, flatten, updateWord, updateTrace, candidates, factor, graphWords } from "../assets/episodes.js";
 import { MONOIDS, basis, zeroVec, addVec, eqVec, actionMatrix, applyAction, valueRecovery, trackTrace, checkMonoid } from "../assets/vectors.js";
-import { stepper, clampStep } from "../assets/dom.js";   // uses `document` only inside its functions
+import { stepper, clampStep } from "../assets/dom.js";
+import { outlineHtml, stepDetailHtml } from "../assets/walkthrough.js";   // uses `document` only inside its functions
 
 const A = ["a", "b"];
 let n = 0;
@@ -296,6 +297,22 @@ t("stepper clamps, and does not fire onset on construction", () => {
   st.go(1); st.go(-5); st.go(99);
   assert.deepEqual(calls, [1, 0, 3]);
   delete globalThis.document;
+});
+
+// ---------------------------------------------------------------- walkthrough: plain outline
+// No step-through mode: every step is shown normally (nothing dimmed); one is selected for detail.
+t("walkthrough shows every step, none dimmed, one selected", () => {
+  const steps = [{ text: "a" }, { text: "b <c>", hard: true, link: "main", uses: ["X", "main"], note: "n", lean: "x := y" }, { text: "d" }];
+  const html = outlineHtml(steps);
+  assert.equal((html.match(/class="step/g) || []).length, 3);
+  assert.ok(!/\boff\b/.test(html), "no dimmed steps");
+  assert.equal((html.match(/ on"/g) || []).length, 1); assert.ok(/class="step on" data-j="0"/.test(html), "first step selected by default");
+  assert.ok(/class="step hard on" data-j="1"/.test(outlineHtml(steps, 1)));
+  assert.ok(html.includes("b &lt;c&gt;"), "escaped");
+  const det = stepDetailHtml(steps[1]);
+  assert.ok(det.includes("<p>n</p>") && det.includes("x := y"));
+  assert.deepEqual([...det.matchAll(/href="#\/node\/([^"]+)"/g)].map((m) => m[1]), ["X", "main"], "uses deduplicated");
+  assert.equal(stepDetailHtml(undefined).trim(), "");
 });
 
 console.log(`widget logic: all ${n} test groups passed`);

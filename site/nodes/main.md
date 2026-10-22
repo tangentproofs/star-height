@@ -12,7 +12,7 @@ caveats:
   - "The empty alphabet is allowed: `Finite Alphabet` holds for an empty type, and the proof treats that case separately."
 widgets:
   - type: walkthrough
-    title: "Step through the proof (Main.lean, lines 10-28)"
+    title: "Proof outline (Main.lean, lines 10-28)"
     config:
       steps:
         - text: "Go classical, then split on whether the alphabet has any letters"

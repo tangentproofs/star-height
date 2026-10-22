@@ -6,6 +6,7 @@ import { DFAS, cloneDFA, trace, accepts, endo, imageMonoid, fullMonoidSize } fro
 import { prefixCode, inRemainder, allIn, flatten, updateTrace, factor, graphWords, candidates } from "./episodes.js";
 import { MONOIDS, basis, addVec, eqVec, actionMatrix, applyAction, trackTrace } from "./vectors.js";
 import { h, svg, esc, W, wordSpan, field, row, btn, yes, parseAlphabet, parseList, stepper } from "./dom.js";
+import { outlineHtml, stepDetailHtml } from "./walkthrough.js";
 
 const CLAUSE = {
   zero: ".zero ↦ 0", one: ".one ↦ 1", letter: ".letter a ↦ {[a]}",
@@ -702,32 +703,17 @@ function decomposeWidget(el, cfg = {}) {
 }
 
 // ---------------------------------------------------------------- walkthrough
-// A proof outline you step through, one line at a time, with the nodes each step uses.
+// A proof outline: every step shown at once. Click a step to show its note, Lean and the nodes it
+// uses below the outline; the first step is selected to begin with. Markup in assets/walkthrough.js.
 function walkthroughWidget(el, cfg = {}) {
   const steps = cfg.steps || [];
   const listBox = h("div", { class: "flow wt" }), detail = h("div", { class: "wtdetail" });
-  const bar = h("div");
-  let i = 0, all = false;
-  el.append(bar, listBox, detail);
+  let i = 0;
+  el.append(listBox, detail);
   function run() {
-    bar.innerHTML = "";
-    bar.append(h("div", { class: "row steps" },
-      btn("⏮", () => { i = 0; run(); }),
-      btn("◀ back", () => { i = Math.max(0, i - 1); run(); }, { disabled: i === 0 ? "" : null }),
-      btn("next ▶", () => { i = Math.min(steps.length - 1, i + 1); run(); }, { class: "primary", disabled: i >= steps.length - 1 ? "" : null }),
-      h("span", { class: "small muted" }, ` step ${i + 1} / ${steps.length}`),
-      btn(all ? "step through" : "show all", () => { all = !all; run(); })));
-    listBox.innerHTML = steps.map((s, j) => {
-      const on = all || j === i;
-      return `${j ? '<div class="arrow">↓</div>' : ""}<div class="step${s.hard ? " hard" : ""}${j === i ? " on" : ""}${on ? "" : " off"}" data-j="${j}">${s.link ? `<a href="#/node/${encodeURIComponent(s.link)}">${esc(s.text)}</a>` : esc(s.text)}</div>`;
-    }).join("");
+    listBox.innerHTML = outlineHtml(steps, i);
     listBox.querySelectorAll(".step").forEach((d) => d.addEventListener("click", (ev) => { if (ev.target.tagName !== "A") { i = +d.dataset.j; run(); } }));
-    const s = steps[i] || {};
-    const uses = [...(s.uses || []), ...(s.link ? [s.link] : [])].filter((v, k, a) => a.indexOf(v) === k);
-    detail.innerHTML = `
-      ${s.note ? `<p>${esc(s.note)}</p>` : ""}
-      ${s.lean ? `<pre class="lean"><span class="var">${esc(s.lean)}</span></pre>` : ""}
-      ${uses.length ? `<div class="small"><b>Nodes used here:</b> <span class="deps">${uses.map((u) => `<a href="#/node/${encodeURIComponent(u)}">${esc(u)}</a>`).join("")}</span></div>` : ""}`;
+    detail.innerHTML = stepDetailHtml(steps[i]);
   }
   run();
 }

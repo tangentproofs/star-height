@@ -77,3 +77,29 @@ export function contrast(a, b) {
   const x = lum(a), y = lum(b);
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 }
+
+// ---- per-question quiz score (shown as stars) -------------------------------------------------
+// r.correct: array of booleans, one per quiz question; a question stays filled once it has been
+// answered correctly. Older records have no `correct`: a passed quiz counts as every star filled.
+
+/** { right, total } for a node record and a quiz of `total` questions. */
+export function quizScore(r, total) {
+  total = Math.max(0, total | 0);
+  if (Array.isArray(r?.correct)) {
+    const right = r.correct.slice(0, total).filter(Boolean).length;
+    return { right: r.quizPassed ? total : right, total };
+  }
+  return { right: r?.quizPassed ? total : 0, total };
+}
+
+/** Merge one round of answers (`oks[i]` true when question i is right now) into record `r`.
+ *  Sets r.quizPassed (once) when every question has been answered correctly. Returns quizScore. */
+export function recordQuizResults(r, oks, now = Date.now()) {
+  const prev = Array.isArray(r.correct) ? r.correct : r.quizPassed ? oks.map(() => true) : [];
+  r.correct = oks.map((ok, i) => !!(ok || prev[i]));
+  if (oks.length && r.correct.every(Boolean) && !r.quizPassed) r.quizPassed = now;
+  return quizScore(r, oks.length);
+}
+
+/** "★★☆☆" for a score. */
+export const starString = ({ right, total }) => "★".repeat(right) + "☆".repeat(Math.max(0, total - right));

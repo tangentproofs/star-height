@@ -1,6 +1,8 @@
 import { highlight, linkMap } from "./lean.js";
 import { mountWidget } from "./widgets.js";
-import { migrateProgress, emptyProgress, ownStatus, makeUnderstood, STATUS_ORDER, STATUS_LABEL, COLORS, PENDING_COLOR } from "./progress.js";
+import { migrateProgress, emptyProgress, ownStatus, makeUnderstood, STATUS_ORDER, STATUS_LABEL, COLORS, PENDING_COLOR, quizScore, recordQuizResults, starString } from "./progress.js";
+import { wrapLeanLines } from "./leanlines.js";
+import { statementSet } from "./statement.js";
 
 const REPO = "tangentproofs/star-height";
 const BLOB = `https://github.com/${REPO}/blob/main`;
@@ -15,6 +17,18 @@ const [decls, nodes] = await Promise.all([
 ]);
 const byId = new Map(decls.map((d) => [d.id, d]));
 const reachable = decls.filter((d) => d.depth !== null);
+
+// Headline theorems, and what a reader needs to read their STATEMENTS (statement mentions only,
+// transitively, stopping at Mathlib; proof-only dependencies are left out). See assets/statement.js.
+const HEADLINES = ["main"];
+const STMT = statementSet(byId, HEADLINES);
+const stmtSet = new Set(STMT.defs);
+// Short glosses for the Mathlib notions the headline statements use (taken as given, not explained here).
+const MATHLIB_GLOSS = {
+  Finite: "<code>Finite α</code>: the type α has finitely many elements (possibly none).",
+  Language: "<code>Language α</code>: a set of words over the alphabet α; a word is a <code>List α</code>.",
+  "Language.IsRegular": "<code>L.IsRegular</code>: some DFA with finitely many states accepts exactly the words of <code>L</code>.",
+};
 
 // ------------------------------------------------------------------ progress
 // localStorage schema v2 (see assets/progress.js): { v: 2, nodes: { [id]: { viewed?, quizPassed?, signedOff?, answers? } } }.
@@ -46,6 +60,7 @@ const routes = [
   [/^#?\/?$/, graphPage],
   [/^#\/node\/(.+)$/, (id) => nodePage(decodeURIComponent(id))],
   [/^#\/nodes(?:\?.*)?$/, () => listPage()],
+  [/^#\/start$/, startPage],
   [/^#\/playground$/, playgroundPage],
   [/^#\/about$/, aboutPage],
 ];
@@ -72,6 +87,8 @@ function graphPage() {
         <h1>Every regular language has generalized star height ≤ 3</h1>
         <p class="muted">The Lean proof (OpenAI, 2026) checks. The job here is different: <b>you</b> are the checker.
         A node turns green when you tick <b>I understand</b> (lightest), pass its quiz (middle) or do both (darkest), and it counts as understood once everything its statement mentions is too, just as Lean won't accept a statement whose ingredients it doesn't know.</p>
+        <p><a class="start-link" href="#/start">Start here: what the theorem says →</a>
+        <span class="small muted">the theorem and the ${STMT.defs.length} definitions you need to read it, before any proof</span></p>
         <div class="toolbar">
           <button data-v="spine">Explained spine (${spine.length})</button>
           <button data-v="neighborhood">Spine + direct deps</button>
@@ -96,14 +113,14 @@ function graphPage() {
           ${STATUS_ORDER.map((k) => `<div><span class="sw" style="background:${COLORS[k]}"></span>${STATUS_LABEL[k]}</div>`).join("")}
           <div><span class="sw" style="background:transparent;border:2px dashed ${PENDING_COLOR}"></span>marked understood, a mention isn't yet</div>
           <div><span class="sw" style="background:transparent;border:2px solid #f92672"></span>main theorem</div>
+          <div><span class="sw stmt-ring"></span>needed to read the main statement</div>
         </div>
         <div class="panel small">
           <h3>Start here</h3>
+          <p>Read <a href="#/start">what the theorem says</a>: the statement, then the definitions it uses, simplest first.</p>
           <ol>
-            <li><a href="#/node/Expression">Expression</a> — what the formulas are</li>
-            <li><a href="#/node/Expression.language">language</a> and <a href="#/node/Expression.height">height</a></li>
-            <li><a href="#/node/HasHeightAtMost">HasHeightAtMost</a></li>
-            <li><a href="#/node/main">main</a> — the theorem</li>
+            ${STMT.defs.map((id) => `<li><a href="#/node/${encodeURIComponent(id)}">${esc(id)}</a></li>`).join("")}
+            ${HEADLINES.map((id) => `<li><a href="#/node/${encodeURIComponent(id)}">${esc(id)}</a> — the theorem</li>`).join("")}
           </ol>
           <p><a href="#/playground">Play with expressions →</a></p>
         </div>
@@ -168,7 +185,7 @@ function drawGraph(view) {
     } else ids = new Set(decls.map((d) => d.id));
     for (const id of ids) {
       const d = byId.get(id), st = status(id);
-      els.push({ data: { id, label: id.split(".").pop(), color: COLORS[st], pending: depsPending(id) ? 1 : 0, size: nodes[id] ? 26 : 12, main: id === "main" ? 1 : 0, explained: nodes[id] ? 1 : 0 } });
+      els.push({ data: { id, label: id.split(".").pop(), color: COLORS[st], pending: depsPending(id) ? 1 : 0, size: nodes[id] ? 26 : 12, main: id === "main" ? 1 : 0, stmt: stmtSet.has(id) ? 1 : 0, explained: nodes[id] ? 1 : 0 } });
     }
     for (const id of ids) {
       const d = byId.get(id);
@@ -184,6 +201,7 @@ function drawGraph(view) {
     style: [
       { selector: "node", style: { "background-color": "data(color)", width: "data(size)", height: "data(size)", label: "data(label)", color: "#f8f8f2", "font-size": view === "all" ? 6 : 10, "text-wrap": "wrap", "text-valign": "bottom", "text-margin-y": 3, "text-outline-color": "#1e1f1c", "text-outline-width": 2 } },
       { selector: "node[explained = 0]", style: { "font-size": view === "all" ? 0 : 7, color: "#a59f85" } },
+      { selector: "node[stmt = 1]", style: { "outline-width": 3, "outline-color": "#66d9ef", "outline-offset": 3, "outline-opacity": 1 } },
       { selector: "node[pending = 1]", style: { "border-width": 3, "border-style": "dashed", "border-color": PENDING_COLOR } },
       { selector: "node[main = 1]", style: { "border-width": 3, "border-color": "#f92672", "font-weight": "bold" } },
       { selector: "edge", style: { width: 1.2, "line-color": "#5c5b4f", "target-arrow-color": "#5c5b4f", "target-arrow-shape": "triangle", "arrow-scale": 0.7, "curve-style": big ? "haystack" : "bezier", opacity: 0.8 } },
@@ -249,29 +267,32 @@ function nodePage(id) {
   const n = nodes[id];
   const r = rec(id);
   if (!r.viewed) { r.viewed = Date.now(); save(); }
-  const st = status(id);
   const links = linkMap([...d.meaningDeps, ...d.proofDeps, id]);
   const src = `${BLOB}/${d.file}#L${d.line}-L${d.endLine}`;
   const editUrl = n ? `https://github.com/${REPO}/edit/main/site/nodes/${encodeURIComponent(id)}.md`
     : `https://github.com/${REPO}/new/main/site/nodes?filename=${encodeURIComponent(id)}.md`;
-  const pendingDeps = d.meaningDeps.filter((x) => !understood(x));
+  const lean = wrapLeanLines(highlight(d.statement, links), d.statement, d.truncated ? `<span class="cm"> := … (proof omitted)</span>` : "");
   app.className = "node";
-  // Layout (see .sbs in style.css): plain English on the left, the formal statement on the right
-  // (sticky on desktop), so the two can be read against each other; stacked plain-first on narrow
-  // screens. Below: the "I understand" assertion, then the optional bonus quiz, then widgets.
+  // Layout (see .statusbar and .sbs in style.css):
+  //   status bar (I think I understand this · quiz stars · colour), title, summary;
+  //   plain English + widgets (left) beside the formal statement (right, sticky, lines wrap);
+  //   bonus quiz; edit links; discussion. Narrow screens stack in that order.
   app.innerHTML = `
     <div class="node-head">
-      <p class="small"><a href="#/">← graph</a></p>
+      <div class="topline"><a class="small" href="#/">← graph</a><div class="statusbar" id="statusbar"></div></div>
       <h1>${n ? esc(n.title) : esc(id)}</h1>
-      <div><span class="pill kind-${d.kind}">${d.kind}</span><span class="pill st-${st}">${statusLabel(id)}</span>${n ? `<span class="pill ${n.review === "draft" ? "draft" : ""}">${n.review}</span>` : ""}
+      <div><span class="pill kind-${d.kind}">${d.kind}</span>${n ? `<span class="pill ${n.review === "draft" ? "draft" : ""}">${n.review}</span>` : ""}
       <span class="name">${esc(d.name)}</span></div>
       ${n ? `<p class="eli5 summary">${n.summaryHtml}</p>` : ""}
+      ${HEADLINES.includes(id) ? `<p><a class="start-link" href="#/start">Start here: what the theorem says →</a> <span class="small muted">this statement and the ${STMT.defs.length} definitions it uses, simplest first</span></p>`
+        : stmtSet.has(id) ? `<p class="small">Needed to read the main statement · <a href="#/start">what the theorem says →</a></p>` : ""}
+      <p class="small muted status-note" id="status-note"></p>
     </div>
     <div class="sbs">
       <section class="sbs-plain" id="plain"></section>
       <section class="sbs-formal"><div class="sbs-formal-inner">
         <h2>Formal statement</h2>
-        <pre class="lean">${highlight(d.statement, links)}${d.truncated ? `<span class="cm"> := … (proof omitted)</span>` : ""}</pre>
+        <pre class="lean wrap">${lean}</pre>
         <p class="small muted"><a href="${src}" target="_blank" rel="noopener">${esc(d.file)} lines ${d.line}–${d.endLine}</a>
         ${d.variables.length ? ` · section variables in scope: <code>${esc(d.variables.join("  "))}</code>` : ""}</p>
         <div class="small">
@@ -293,17 +314,16 @@ function nodePage(id) {
       <p>Nobody has written a plain-English explanation and quiz for this declaration yet, so it can't be signed off.
       <a href="${editUrl}" target="_blank" rel="noopener">Write one on GitHub</a> (see <a href="https://github.com/${REPO}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>).</p>
       <details><summary>Prompt for an AI agent</summary><textarea class="prompt" readonly>${esc(agentPrompt(d))}</textarea></details></div>`;
+    renderStatus(id);
   } else {
     plain.innerHTML = `
       <div class="eli5">${n.bodyHtml}</div>
+      <div id="widgets"></div>
       ${n.caveatsHtml.length ? `<div class="panel caveats"><h3>Faithfulness notes</h3><ul>${n.caveatsHtml.map((x) => `<li>${x}</li>`).join("")}</ul></div>` : ""}`;
     c.innerHTML = `
-      <div class="panel signoff" id="signoff"></div>
-      <h2>Bonus: check yourself</h2>
-      <p class="small muted">Optional. Passing the quiz turns the node a darker green.</p>
+      <h2 id="quiz-head">Bonus: check yourself</h2>
+      <p class="small muted">Optional. Each question you get right fills a star in the bar at the top; all of them turns the node a darker green.</p>
       <div class="panel quiz" id="quiz"></div>
-      ${(n.widgets || []).length ? `<h2>Explore</h2>` : ""}
-      <div id="widgets"></div>
       <p class="small muted">Spotted an error or have a better explanation? <a href="${editUrl}" target="_blank" rel="noopener">Edit this node on GitHub</a>
       · <details style="display:inline"><summary>agent prompt</summary><textarea class="prompt" readonly>${esc(agentPrompt(d))}</textarea></details></p>`;
     const w = document.getElementById("widgets");
@@ -312,8 +332,6 @@ function nodePage(id) {
   }
   c.insertAdjacentHTML("beforeend", `<h2>Discussion</h2><div class="giscus-wrap" id="giscus"></div>`);
   mountGiscus(id);
-  // pendingDeps is shown in the sign-off panel
-  nodePage.pending = pendingDeps;
 }
 
 const norm = (s) => String(s).toLowerCase().replace(/\s+/g, "").replace(/[`'"]/g, "");
@@ -328,8 +346,7 @@ function renderQuiz(id, n) {
     return `<div class="q" data-i="${i}"><div><b>Q${i + 1}.</b> ${q.qHtml}</div>${input}<div class="verdict"></div><div class="explain">${q.explainHtml}</div></div>`;
   }).join("") + `<button class="primary" id="check">Check answers</button> <span id="qres"></span>`;
   const check = () => {
-    let right = 0;
-    const ans = {};
+    const ans = {}, oks = [];
     n.quiz.forEach((q, i) => {
       const box = qz.querySelector(`.q[data-i="${i}"]`);
       let ok = false, given;
@@ -339,43 +356,55 @@ function renderQuiz(id, n) {
         ok = q.type === "number" ? given.trim() !== "" && Number(given) === q.answer : q.answer.some((a) => norm(a) === norm(given));
       }
       ans[i] = given;
+      oks.push(ok);
       if (given === null || given === "") { box.classList.remove("answered"); box.querySelector(".verdict").innerHTML = ""; return; }
       box.classList.add("answered");
       box.querySelector(".verdict").innerHTML = ok ? `<span class="ok">✓ correct</span>` : `<span class="bad">✗ not quite — read the explanation and try again</span>`;
-      if (ok) right++;
     });
     r.answers = ans;
-    const passed = right === n.quiz.length;
-    if (passed && !r.quizPassed) r.quizPassed = Date.now();
+    const sc = recordQuizResults(r, oks);
     save();
-    document.getElementById("qres").innerHTML = passed ? `<b class="ok" style="color:var(--green)">All ${right} correct. Quiz passed.</b>` : `${right} / ${n.quiz.length} correct`;
-    renderSignoff(id);
+    const now = oks.filter(Boolean).length;
+    document.getElementById("qres").innerHTML = sc.right === sc.total
+      ? `<b class="ok" style="color:var(--green)">${starString(sc)} All ${sc.total} correct. Quiz passed.</b>`
+      : `${now} / ${sc.total} correct this time · <span class="stars-inline">${starString(sc)}</span> ${sc.right} / ${sc.total} so far`;
+    renderStatus(id);
   };
   document.getElementById("check").onclick = check;
-  if (r.answers) check(); else renderSignoff(id);
+  if (r.answers) check(); else renderStatus(id);
 }
-function renderSignoff(id) {
+
+// The status bar at the very top of a node page: the "I think I understand this" assertion, the
+// quiz stars (one per question, filled once answered correctly; click to jump to the quiz), and the
+// node's colour. A short note under the summary says what is still missing.
+function renderStatus(id) {
   refresh();
-  const box = document.getElementById("signoff");
-  const r = rec(id), d = byId.get(id);
+  const bar = document.getElementById("statusbar");
+  if (!bar) return;
+  const r = rec(id), d = byId.get(id), n = nodes[id];
+  const st = status(id);
   const pending = d.meaningDeps.filter((x) => !understood(x));
-  box.classList.remove("locked");
   const links = (xs) => xs.map((x) => `<a href="#/node/${encodeURIComponent(x)}">${esc(x)}</a>`).join(", ");
-  const quizNote = r.quizPassed ? "" : ` Passing the bonus quiz below as well turns it <b>dark green</b>.`;
-  box.innerHTML = `
-    <label><input type="checkbox" id="so" ${r.signedOff ? "checked" : ""}>
-    <b>I understand the formal statement</b> — I could explain what the Lean above says, including its hypotheses, to someone else.</label>
-    <p class="small muted">${understood(id) ? `<span class="status-line" style="color:var(--both)">✓ Understood: you've marked this and everything it mentions.</span>${quizNote}`
-      : r.signedOff ? `Marked understood. It counts as <b>understood</b> once these are understood too: ${links(pending)}.${quizNote}`
-      : `Tick this whenever you're ready. The bonus quiz below is optional; passing it as well gives the darker green.${pending.length ? ` Mentions still to understand: ${links(pending)}.` : ""}`}</p>`;
-  const so = document.getElementById("so");
-  if (so) so.onchange = () => { if (so.checked) r.signedOff = Date.now(); else delete r.signedOff; save(); renderSignoff(id); updateHeaderPill(id); };
-  updateHeaderPill(id);
-}
-function updateHeaderPill(id) {
-  refresh();
-  const p = document.querySelector(".node-head .pill[class*='st-']");
-  if (p) { const st = status(id); p.className = `pill st-${st}`; p.textContent = statusLabel(id); }
+  bar.className = `statusbar st-${st}`;
+  bar.style.setProperty("--st", COLORS[st]);
+  if (!n) {
+    bar.innerHTML = `<span class="sw"></span><span class="lbl">${statusLabel(id)}</span>`;
+    document.getElementById("status-note").innerHTML = "";
+    return;
+  }
+  const sc = quizScore(r, n.quiz.length);
+  bar.innerHTML = `
+    <span class="sw" title="${esc(statusLabel(id))}"></span>
+    <label class="iu"><input type="checkbox" id="so" ${r.signedOff ? "checked" : ""}> I think I understand this</label>
+    <button type="button" class="stars" id="stars" title="Bonus quiz: ${sc.right} of ${sc.total} answered correctly. Click to go to the quiz."
+      aria-label="Quiz score ${sc.right} of ${sc.total}"><span class="st">${starString(sc)}</span> <span class="ct">${sc.right}/${sc.total}</span></button>
+    <span class="lbl">${statusLabel(id)}</span>`;
+  document.getElementById("status-note").innerHTML = understood(id)
+    ? `<span style="color:var(--both)">✓ Understood: you've marked this and everything it mentions.</span>${r.quizPassed ? "" : " The bonus quiz below would turn it dark green."}`
+    : r.signedOff ? `It counts as <b>understood</b> once these are too: ${links(pending)}.`
+    : pending.length ? `Mentions to understand too: ${links(pending)}.` : "";
+  document.getElementById("so").onchange = (e) => { if (e.target.checked) r.signedOff = Date.now(); else delete r.signedOff; save(); renderStatus(id); };
+  document.getElementById("stars").onclick = () => document.getElementById("quiz-head")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function mountGiscus(id) {
@@ -408,6 +437,50 @@ function listPage(fileFilter) {
     const v = e.target.value.toLowerCase();
     app.querySelectorAll("tbody tr").forEach((tr) => (tr.style.display = tr.dataset.id.includes(v) ? "" : "none"));
   };
+}
+
+// ------------------------------------------------------------------ start here (statement first)
+function stmtCard(id, headline) {
+  const d = byId.get(id), n = nodes[id], r = rec(id), st = status(id);
+  const sc = n ? quizScore(r, n.quiz.length) : null;
+  const lean = wrapLeanLines(highlight(d.statement, linkMap([...d.meaningDeps, id])), d.statement, d.truncated ? `<span class="cm"> := …</span>` : "");
+  return `<div class="card${headline ? " headline" : ""}" style="--st:${COLORS[st]}">
+    <div class="card-top">
+      <span class="sw" title="${esc(statusLabel(id))}"></span>
+      <a class="ttl" href="#/node/${encodeURIComponent(id)}">${n ? esc(n.title) : esc(id)}</a>
+      <span class="pill kind-${d.kind}">${d.kind}</span>
+      <span class="grow"></span>
+      ${n ? `<label class="iu"><input type="checkbox" data-so="${esc(id)}" ${r.signedOff ? "checked" : ""}> I think I understand this</label>
+      <a class="stars" href="#/node/${encodeURIComponent(id)}" title="Bonus quiz on its page: ${sc.right} of ${sc.total} right">${starString(sc)} <span class="ct">${sc.right}/${sc.total}</span></a>` : `<span class="small muted">no explainer yet</span>`}
+    </div>
+    ${n ? `<p class="eli5 one">${n.summaryHtml}</p>` : ""}
+    <pre class="lean wrap">${lean}</pre>
+  </div>`;
+}
+function startPage() {
+  app.className = "node";
+  const y = startPage.keepScroll ? scrollY : 0;
+  startPage.keepScroll = false;
+  const done = STMT.defs.filter((id) => understood(id)).length;
+  app.innerHTML = `
+    <p class="small"><a href="#/">← graph</a></p>
+    <h1>Start here: what the theorem says</h1>
+    <p class="muted" style="max-width:60rem">Before any proof: the headline statement, then every definition you need to <i>read</i> it,
+    simplest first. These come from the statement's own mentions, followed down to Mathlib. Whatever the <i>proof</i>
+    uses comes later and is not listed here. You have marked <b>${done}</b> of ${STMT.defs.length} of these definitions understood.</p>
+    <h2>The statement</h2>
+    ${HEADLINES.map((id) => stmtCard(id, true)).join("")}
+    <h2>Definitions it uses (${STMT.defs.length}), simplest first</h2>
+    ${STMT.defs.map((id) => stmtCard(id, false)).join("")}
+    <h2>From Mathlib (taken as given)</h2>
+    <ul class="mathlib-gloss">${STMT.mathlib.map((m) => `<li><a href="${MATHLIB_DOCS(m)}" target="_blank" rel="noopener"><code>${esc(m)}</code></a> — ${MATHLIB_GLOSS[m] || `<span class="muted">see the Mathlib docs</span>`}</li>`).join("")}</ul>
+    <p>Next: <a href="#/">the proof graph</a>, where everything below these sits.</p>`;
+  app.querySelectorAll("input[data-so]").forEach((cb) => cb.onchange = () => {
+    const r = rec(cb.dataset.so);
+    if (cb.checked) r.signedOff = Date.now(); else delete r.signedOff;
+    save(); refresh(); startPage.keepScroll = true; startPage();
+  });
+  if (y) scrollTo(0, y);
 }
 
 // ------------------------------------------------------------------ playground
