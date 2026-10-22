@@ -202,7 +202,9 @@ const REGISTRY = { regex: regexWidget, compare: compareWidget, "dfa-monoid": dfa
 
 export function mountWidget(container, spec) {
   const box = h("div", { class: "widget" });
-  if (spec.title) box.append(h("h3", {}, spec.title));
+  // titleHtml (built by tools/build_site.mjs) is the escaped title with "File.lean, lines a-b" linked to the source.
+  if (spec.titleHtml) box.append(h("h3", { html: spec.titleHtml }));
+  else if (spec.title) box.append(h("h3", {}, spec.title));
   container.append(box);
   const f = REGISTRY[spec.type];
   if (!f) { box.append(h("p", { class: "err" }, `unknown widget ${spec.type}`)); return; }

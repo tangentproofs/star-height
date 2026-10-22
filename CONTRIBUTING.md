@@ -171,6 +171,28 @@ python3 site/tools/build_decls.py              # writes site/data/decls.json
 Generated helpers (recursors, `match_` / `proof_` auxiliaries, equation lemmas) are
 folded into the declaration they belong to.
 
+## The browsable source (`src/`)
+
+The site also publishes every `.lean` file of this repo, highlighted, at
+`src/<path>.lean.html` (Mathlib is not copied; its names link to the Mathlib docs).
+`#L9-L28` on such a page highlights those lines. Every place the site names Lean lines
+links there: the node pages' "Main.lean lines 9–28", the start page, the node list,
+walkthrough steps, and any `` `File.lean` `` or "File.lean, lines a-b" written in a node
+(see `site/tools/srcrefs.mjs`). Each declaration in the source has a ¶ badge back to its
+node page.
+
+`npm run build` renders it (`site/tools/build_source.mjs`). Identifier links come from
+Lean's own cross-references, `site/data/xref.json`, which is committed like `decls.raw.json`
+and only needs regenerating when the Lean changes (seconds, after `lake build`):
+
+```sh
+lake build && python3 site/tools/build_xref.py   # writes site/data/xref.json from .lake/build/**/*.ilean
+cd site && npm run test:source                   # every source link resolves; xref matches the sources
+```
+
+CI fails if `xref.json` is stale for a file. A walkthrough step whose `lean:` is not
+verbatim in the source gets a build warning and links to its nearest line.
+
 ## Discussion
 
 Each node page has a comment thread (giscus, backed by GitHub Discussions in this

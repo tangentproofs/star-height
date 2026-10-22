@@ -200,3 +200,9 @@ a.start-link:hover { background: #20363c; text-decoration: none; }
 .card .one { margin: .4rem 0; }
 .card pre.lean { margin: .4rem 0 .5rem; }
 .mathlib-gloss li { margin: .35rem 0; }
+
+/* links to the rendered source (src/…, tools/build_source.mjs) */
+.srclink a.gh { color: var(--dim); font-size: .8em; margin-left: .5em; border-left: 1px solid var(--line); padding-left: .5em; }
+.srclink a.gh:hover { color: var(--fg); }
+a.srcref { border-bottom: 1px dotted var(--blue); } a.srcref:hover { text-decoration: none; background: var(--panel2); }
+.widget h3 a.srcref { font-weight: 400; }

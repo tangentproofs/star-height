@@ -8,8 +8,14 @@ import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 import { marked } from "marked";
 import Ajv2020 from "ajv/dist/2020.js";
+import { buildSource, sourceFiles, locateSnippet } from "./build_source.mjs";
+import { linkSourceRefs } from "./srcrefs.mjs";
 
 const SITE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const REPO_ROOT = path.dirname(SITE);
+const SRC_FILES = sourceFiles(REPO_ROOT);
+const fileLines = new Map(); // repo-relative .lean path -> its lines (for checking ranges / locating snippets)
+const linesOf = (f) => { if (!fileLines.has(f)) fileLines.set(f, fs.readFileSync(path.join(REPO_ROOT, f), "utf8").split("\n")); return fileLines.get(f); };
 const checkOnly = process.argv.includes("--check");
 const decls = JSON.parse(fs.readFileSync(path.join(SITE, "data/decls.json"), "utf8"));
 const byId = new Map(decls.map((d) => [d.id, d]));
@@ -17,6 +23,8 @@ const schema = JSON.parse(fs.readFileSync(path.join(SITE, "schema/node.schema.js
 const validate = new Ajv2020({ allErrors: true, strict: false }).compile(schema);
 
 const errors = [];
+const warnings0 = [];
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const err = (file, msg) => errors.push(`${file}: ${msg}`);
 const nodes = {};
 
@@ -46,8 +54,26 @@ for (const f of fs.readdirSync(path.join(SITE, "nodes")).filter((f) => f.endsWit
       if (!Array.isArray(q.answer)) err(f, `${where}: text question needs a list of accepted answers`);
     }
   });
-  const md = (s) => marked.parse(s);
-  const mdInline = (s) => marked.parseInline(s);
+  // "Main.lean lines 9-28" and `Height.lean` in node text become links to the rendered source (src/…).
+  const srcErr = (m) => err(f, m);
+  const L = (h) => linkSourceRefs(h, SRC_FILES, linesOf, srcErr);
+  const md = (s) => L(marked.parse(s));
+  const mdInline = (s) => L(marked.parseInline(s));
+  // Walkthrough widgets: link the title's "(File.lean, lines a-b)" and locate each step's Lean in it.
+  const d0 = byId.get(fm.id);
+  for (const w of fm.widgets || []) {
+    if (w.title) w.titleHtml = L(esc(w.title));
+    if (w.type !== "walkthrough" || !d0) continue;
+    const m = (w.title || "").match(/([A-Za-z]\w*\.lean),?\s+lines?\s+(\d+)\s*[-–]\s*(\d+)/);
+    const file = m ? SRC_FILES.find((x) => x.endsWith("/" + m[1]) || x === m[1]) : d0.file;
+    const [from, to] = m ? [+m[2], +m[3]] : [d0.line, d0.endLine];
+    for (const [k, st] of (w.config?.steps || []).entries()) {
+      if (!st.lean || !file) continue;
+      const loc = locateSnippet(linesOf(file), st.lean, from, to);
+      if (loc) st.src = { file, ...loc };
+      if (!loc || loc.approx) warnings0.push(`${f}: walkthrough step ${k + 1}: its Lean is not verbatim in ${file} lines ${from}-${to}; ${loc ? `linked to its nearest line, ${loc.line}` : "no source link"}`);
+    }
+  }
   nodes[fm.id] = {
     ...fm,
     summaryHtml: mdInline(fm.summary),
@@ -64,7 +90,7 @@ for (const f of fs.readdirSync(path.join(SITE, "nodes")).filter((f) => f.endsWit
 
 // Every explained node's meaning-dependencies should be explained too, otherwise
 // the reader can never mark it "understood". Warn (not fail) so stubs can land first.
-const warnings = [];
+const warnings = [...warnings0];
 for (const id of Object.keys(nodes)) {
   for (const dep of byId.get(id)?.meaningDeps || [])
     if (!nodes[dep]) warnings.push(`${id}.md: meaning-dependency '${dep}' has no explainer yet`);
@@ -97,4 +123,11 @@ const todo = reachable
 fs.writeFileSync(path.join(DIST, "data/needs-explainer.json"), JSON.stringify(todo, null, 1));
 fs.copyFileSync(path.join(SITE, "schema/node.schema.json"), path.join(DIST, "data/node.schema.json"));
 fs.writeFileSync(path.join(DIST, ".nojekyll"), "");
+// Browsable source: dist/src/<path>.lean.html (see tools/build_source.mjs).
+const xrefPath = path.join(SITE, "data/xref.json");
+const xref = fs.existsSync(xrefPath) ? JSON.parse(fs.readFileSync(xrefPath, "utf8")) : null;
+if (!xref) console.warn("warning: data/xref.json missing; source pages will have no identifier links (run tools/build_xref.py)");
+const src = buildSource({ repo: REPO_ROOT, dist: DIST, decls, nodes, xref });
+for (const w of src.warnings) console.warn("warning:", w);
+console.log(`source: ${src.stats.files} files, ${src.stats.linked} identifier links (${src.stats.local} to this project, ${src.stats.external} to Mathlib docs)`);
 console.log(`built ${DIST}`);
