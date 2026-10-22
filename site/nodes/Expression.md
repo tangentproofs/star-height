@@ -8,8 +8,11 @@ caveats:
   - "This is pure syntax. What a formula *means* (its set of words) is given separately by `Expression.language`, and its star depth by `Expression.height`."
   - "The type puts no condition on `Alphabet` (it can be infinite or empty). The finiteness assumption first appears in `main`."
 widgets:
+  - type: build
+    title: "Build an Expression by pressing constructors"
+    config: { alphabet: "ab", n: 4 }
   - type: regex
-    title: "Type an expression and see it as a Lean term"
+    title: "Or type one, and read it back as a Lean term"
     config: { expr: "(a+b)*~(ab)", alphabet: "ab", n: 3, presets: ["0", "1", "a", "a+b", "ab", "~a", "a*", "(a+b)*~(ab)"] }
 quiz:
   - q: "How many ways are there to build an `Expression Alphabet`, i.e. how many constructors does the inductive type have?"

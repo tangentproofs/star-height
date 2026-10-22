@@ -8,8 +8,8 @@ caveats:
   - "`e <+: f` is Lean's `List.IsPrefix`: `f` starts with `e`, i.e. `∃ t, e ++ t = f`. Every word is a prefix of itself, which is why the clause concludes `e = f` instead of being false."
   - "`E` may be infinite."
 widgets:
-  - type: factor
-    title: "Is it a prefix code? How does a word split?"
+  - type: factor-lab
+    title: "Is it a prefix code? Peel the blocks off one at a time"
     config: { E: "a, ba, bb", word: "abbaab" }
 quiz:
   - q: "Is `{a, ab}` a prefix code?"

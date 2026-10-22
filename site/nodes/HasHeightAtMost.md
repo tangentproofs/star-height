@@ -11,6 +11,9 @@ widgets:
   - type: compare
     title: "A height-1 expression and a height-0 expression for the same language"
     config: { left: "(ab)*", right: "~(b~0 + ~0a + ~0(aa+bb)~0)", alphabet: "ab", n: 10 }
+  - type: build
+    title: "Hunt for your own witness P"
+    config: { alphabet: "ab", n: 5 }
 quiz:
   - q: "`HasHeightAtMost L 3` holds. Which statement follows?"
     type: choice

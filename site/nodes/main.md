@@ -11,16 +11,41 @@ caveats:
   - "The history in the plain-English text (Eggan, Dejean–Schützenberger, the generalized star-height problem) is background from the literature. It is not stated in the Lean and should be checked by a human reviewer."
   - "The empty alphabet is allowed: `Finite Alphabet` holds for an empty type, and the proof treats that case separately."
 widgets:
-  - type: outline
-    title: "How the proof goes (two cases)"
+  - type: walkthrough
+    title: "Step through the proof (Main.lean, lines 10-28)"
     config:
       steps:
-        - { text: "Case 1: the alphabet is empty", note: "Then the only word is [], so L ⊆ {[]} is finite.", link: "" }
-        - { text: "HasHeightAtMost.finite: finite languages have any height bound", link: "HasHeightAtMost.finite" }
-        - { text: "Case 2: the alphabet is non-empty", note: "" }
-        - { text: "FiniteRecognition.of_regular: a regular L is recognized by a finite monoid (M, T, F)", link: "FiniteRecognition.of_regular" }
-        - { text: "Rewrite L as {w | T w ∈ F}", note: "Two languages with the same members are equal." }
-        - { text: "FiniteRecognition.recognized_height_three: every such language has height ≤ 3", link: "FiniteRecognition.recognized_height_three", hard: true, note: "Nearly all the real work is underneath this step: 996 of the 1,009 declarations main uses." }
+        - text: "Go classical, then split on whether the alphabet has any letters"
+          lean: "classical
+rcases isEmpty_or_nonempty Alphabet with h|h"
+          note: "The only case split in the whole proof."
+        - text: "Empty alphabet: L is finite, because the only word is []"
+          lean: "apply HasHeightAtMost.finite L _ 3
+apply (Set.finite_singleton ([] : List Alphabet)).subset
+intro w _
+cases w with
+| nil => rfl
+| cons a w => exact isEmptyElim a"
+          note: "A non-empty word would need a first letter, and there are none. So L ⊆ {[]}."
+          uses: [HasHeightAtMost.finite]
+        - text: "Non-empty alphabet: trade the DFA for a finite monoid"
+          lean: "obtain ⟨M,hM,hfin,T,F,hTF⟩ := FiniteRecognition.of_regular hL"
+          note: "This is the only place the hypothesis hL : L.IsRegular is used."
+          uses: [FiniteRecognition.of_regular]
+        - text: "Rewrite L as the words whose monoid value lands in F"
+          lean: "have heq : L=({w | T (FreeMonoid.ofList w)∈F} : Language Alphabet) := by
+  ext w
+  exact hTF w
+rw [heq]"
+          note: "hTF is the membership equivalence word by word; ext turns that into equality of languages."
+        - text: "Every monoid-recognized language has height ≤ 3"
+          lean: "exact FiniteRecognition.recognized_height_three T F"
+          note: "996 of the 1,009 declarations main depends on sit underneath this one step."
+          uses: [FiniteRecognition.recognized_height_three]
+          hard: true
+  - type: decompose
+    title: "The last step, made concrete: pick a DFA and a word"
+    config: { dfa: "even number of a's", E: "aa, ab, b", word: "abba" }
 quiz:
   - q: "Which assumption about the alphabet does `main` make?"
     type: choice

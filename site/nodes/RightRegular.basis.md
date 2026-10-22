@@ -7,9 +7,9 @@ authors: [grok-bot]
 caveats:
   - "`noncomputable` is Lean bookkeeping (Mathlib's `Basis` API is classical). It doesn't change what the vectors are."
 widgets:
-  - type: right-regular
-    title: "Basis vectors and the action"
-    config: { monoid: "ℤ/3 = {1, g, g²}" }
+  - type: vector-lab
+    title: "Pick a monoid element and see its basis vector"
+    config: { monoid: "ℤ/3 = {1, g, g²}", show: ["basis", "vectors"] }
 quiz:
   - q: "What is `basis M m` evaluated at `m'`?"
     type: choice

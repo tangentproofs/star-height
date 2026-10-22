@@ -8,9 +8,9 @@ caveats:
   - "Defined with `Basis.constr`: a linear map is determined by where it sends basis vectors. On a general vector v, coordinate m′ of `action d v` is the mod-2 sum of v(m) over all m with m·d = m′."
   - "The order matters: `action_mul : action (d * e) = (action e).comp (action d)`, so `d` is applied first, then `e`. That matches reading a word left to right."
 widgets:
-  - type: right-regular
-    title: "Watch action d move basis vectors"
-    config: { monoid: "{1, a, b} with xa = a, xb = b" }
+  - type: vector-lab
+    title: "The matrix of action M d, and what it does to a vector"
+    config: { monoid: "{1, a, b} with xa = a, xb = b", show: ["action"] }
 quiz:
   - q: "What is `action M d (basis M 1)`?"
     type: choice

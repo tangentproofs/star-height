@@ -5,9 +5,9 @@ summary: "If a language has only finitely many words, then `HasHeightAtMost L n`
 review: draft
 authors: [grok-bot]
 widgets:
-  - type: regex
-    title: "A finite language as a union of words (height 0)"
-    config: { expr: "1 + ab + ba + bab", alphabet: "ab", n: 4 }
+  - type: union-lab
+    title: "Build the height-0 expression the proof builds"
+    config: { words: true, items: ["", "ab", "ba", "bab"], alphabet: "ab", n: 4 }
 quiz:
   - q: "For which `n` does this lemma give `HasHeightAtMost L n` (for a finite `L`)?"
     type: choice

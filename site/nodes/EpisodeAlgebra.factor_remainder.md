@@ -6,10 +6,11 @@ review: draft
 authors: [grok-bot]
 caveats:
   - "Only `[] ∉ E` is assumed, not the full prefix-code property. Without a prefix code the cutting may not be unique. The lemma only claims one exists."
+  - "The widget's `E = {a, ab, bb}` is deliberately *not* a prefix code, so you get to pick the block at each step. Every choice you can make satisfies the conclusion — which is all an `∃` claims."
 widgets:
-  - type: factor
-    title: "Factor a word"
-    config: { E: "a, ba, bb", word: "babbab" }
+  - type: factor-lab
+    title: "Run the induction yourself — and pick the block when E is not a prefix code"
+    config: { E: "a, ab, bb", word: "abbab" }
 quiz:
   - q: "Which hypothesis does the lemma need about `E`?"
     type: choice

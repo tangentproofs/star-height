@@ -6,6 +6,11 @@ review: draft
 authors: [grok-bot]
 caveats:
   - "`abbrev` means Lean unfolds `V M` to `M → ZMod 2` automatically. The vector-space structure is Mathlib's pointwise one (`Pi.Function.module`)."
+  - "The widget's monoids are small stand-ins chosen so the tables fit on screen. In the proof `M` is the transition monoid of a DFA, so `V M` is much larger — but the structure shown is exactly `M → ZMod 2` with coordinatewise addition."
+widgets:
+  - type: vector-lab
+    title: "Flip bits: a vector is one ZMod 2 label per monoid element"
+    config: { monoid: "ℤ/3 = {1, g, g²}", show: ["vectors"] }
 quiz:
   - q: "If `M` has 5 elements, how many vectors are in `V M`?"
     type: number

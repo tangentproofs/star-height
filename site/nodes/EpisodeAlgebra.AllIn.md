@@ -4,6 +4,10 @@ title: "All blocks belong to D"
 summary: "`AllIn D es` says every word in the list `es` belongs to the language `D`."
 review: draft
 authors: [grok-bot]
+widgets:
+  - type: blocks
+    title: "Assemble a block list and check AllIn D es"
+    config: { D: "a, ba, bb", es: ["a", "bb"], k: 3 }
 quiz:
   - q: "Is `AllIn D []` (the empty list of blocks) true?"
     type: choice

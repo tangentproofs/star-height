@@ -4,6 +4,10 @@ title: Run a state through a list of blocks
 summary: "`updateWord G x es` starts in state `x` and applies `G e` for each block `e` of `es`, from left to right."
 review: draft
 authors: [grok-bot]
+widgets:
+  - type: blocks
+    title: "Fold a state through the blocks, left to right"
+    config: { D: "a, ba, bb", es: ["ba", "a"], k: 3, G: "count a's mod k" }
 quiz:
   - q: "What is `updateWord G x [e₁, e₂]`?"
     type: choice

@@ -9,15 +9,38 @@ caveats:
   - "The order of quantifiers is `∃ E, …∀ d… ∧ ∀ x y, …`. One prefix code `E` works for every monoid value d and every pair of states x, y at once. E may depend on T and ρ."
   - "This explainer covers only the **statement**. The proof is the bulk of the development (996 of the 1,009 declarations `main` depends on, about 9,000 of their ~9,200 lines: clocks, markers, shift tables, splicing…), and none of it is explained here yet. Signing off here means you understand what is claimed, not why it is true."
   - "`E` is not claimed to be finite or regular."
+  - "The `graph-lab` widget is a toy stand-in: a finite `D` over ℤ/3, not the prefix code this lemma produces (which is defined by clocks and markers and is not explained on this site yet)."
 widgets:
-  - type: outline
-    title: "What the lemma hands back"
+  - type: walkthrough
+    title: "What the lemma asks for and what it hands back"
     config:
       steps:
-        - { text: "Input: finite non-empty alphabet, T : words →* M (M finite), finite field K, finite K-vector space V, ρ : M → linear maps V → V" }
-        - { text: "Output 1: a prefix code E", link: "EpisodeAlgebra.PrefixCode" }
-        - { text: "Output 2: for each d ∈ M, {w ∈ remainder E | T w = d} has height ≤ 1", link: "EpisodeAlgebra.remainder" }
-        - { text: "Output 3: for all x, y ∈ V, graph E (block ↦ ρ (T block)) x y has height ≤ 3", link: "EpisodeAlgebra.graph", hard: true }
+        - text: "Input: a finite non-empty alphabet"
+          lean: "[Finite Alphabet] [Nonempty Alphabet]"
+          note: "Non-emptiness is needed here, which is why main handles the empty alphabet separately."
+        - text: "Input: T, a homomorphism from words to a finite monoid M"
+          lean: "(T : FreeMonoid Alphabet →* M)   [Monoid M] [Fintype M]"
+          note: "T is where regularity has already been absorbed: T w is 'the value of the word'."
+        - text: "Input: a finite field K and a finite K-vector space V"
+          lean: "[Field K] [Fintype K] [AddCommGroup V] [Module K V] [Fintype V]"
+        - text: "Input: ρ, attaching a linear map to each monoid element — any function at all"
+          lean: "(ρ : M → (V →ₗ[K] V))"
+          note: "ρ is not assumed to respect multiplication. The caller's ρ happens to, but the lemma never uses that."
+        - text: "Output 1: a prefix code E — the episodes"
+          lean: "∃ E : Language Alphabet, PrefixCode E ∧ …"
+          note: "One E for every d, x and y at once: the ∃ comes before all the ∀s. E is not claimed to be finite or regular."
+          uses: [EpisodeAlgebra.PrefixCode]
+        - text: "Output 2: the leftovers, sorted by value, have height ≤ 1"
+          lean: "∀ d : M, HasHeightAtMost {w | w∈remainder E ∧ T (FreeMonoid.ofList w)=d} 1"
+          uses: [EpisodeAlgebra.remainder]
+        - text: "Output 3: every linear path language over E has height ≤ 3"
+          lean: "∀ x y : V, HasHeightAtMost (graph E (fun w => ρ (T (FreeMonoid.ofList w))) x y) 3"
+          note: "This is the bound the whole development exists to prove. Nothing below it is explained on this site yet."
+          uses: [EpisodeAlgebra.graph]
+          hard: true
+  - type: graph-lab
+    title: "What a path language looks like (a toy stand-in, not the proof's E)"
+    config: { D: "a, ba, bb", k: 3, x: 0, y: 1, n: 5, G: "count a's mod k" }
 quiz:
   - q: "Must `ρ` be a monoid homomorphism (ρ(d·e) related to ρ(d) and ρ(e))?"
     type: choice

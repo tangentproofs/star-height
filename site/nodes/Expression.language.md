@@ -7,7 +7,11 @@ authors: [grok-bot]
 caveats:
   - "Complement (`ᶜ`) is taken inside *all* finite words over `Alphabet` (Mathlib's `Language Alphabet` is `Set (List Alphabet)`). So the meaning of `.compl P` depends on the alphabet: over {a, b}, `~a` contains `b` and `bb`; over {a} it does not."
   - "`0` and `1` here are Mathlib's language constants: `0` is the empty language ∅ and `1` is `{[]}`, the language whose only word is the empty word. They are not numbers."
+  - "The widgets list a language's words only up to a chosen length n. That is an exact picture of `language P ∩ {w | w.length ≤ n}` (every clause commutes with the truncation), but it is a finite window, not the whole language."
 widgets:
+  - type: lang-tree
+    title: "The definition running, one clause per subterm"
+    config: { expr: "~(a*)b", alphabet: "ab", n: 3 }
   - type: regex
     title: "List the words of an expression"
     config: { expr: "(ab)*", alphabet: "ab", n: 6, presets: ["0", "1", "0*", "~0", "~1", "a*b", "(ab)*", "~(a+b)"] }

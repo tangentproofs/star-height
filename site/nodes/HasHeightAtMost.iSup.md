@@ -6,6 +6,11 @@ review: draft
 authors: [grok-bot]
 caveats:
   - "`n` is a section variable (`variable {n k : ℕ}` in `Height.lean`), shown under the statement. It is the same `n` for every `L i`."
+  - "The widget's remark that `⨆ n, {aⁿbⁿ}` is not regular is standard background, not something this Lean development states. What the Lean does say is just that `iSup` needs `[Finite ι]`."
+widgets:
+  - type: union-lab
+    title: "Add summands and watch the height stay at the maximum"
+    config: { items: ["a*", "~(b~0)", "(a*b)*"], alphabet: "ab", n: 4 }
 quiz:
   - q: "What does `⨆ i, L i` mean for languages?"
     type: choice

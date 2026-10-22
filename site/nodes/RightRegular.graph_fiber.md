@@ -7,10 +7,14 @@ authors: [grok-bot]
 caveats:
   - "No hypothesis on `E` is needed here: it holds for any language `E`, prefix code or not."
   - "The update for a block `w` is `action M (T w)`, which uses the block's own monoid value. Because T is a homomorphism and action composes in reading order, running through blocks e₁…e_k from basis 1 gives basis T(e₁⋯e_k) (`updateWord_product`)."
+  - "The second widget is an *analogy*: its states are monoid elements, not vectors of `V M`. The first widget's track section is the actual mechanism — start at `basis 1`, apply `action (T e)` per block, land on `basis` of the product."
 widgets:
-  - type: graph-walk
-    title: "Same idea with M = ℤ/3 and T(w) = number of a's mod 3"
-    config: { E: "a, ba, bb", k: 3, x: 0, y: 2, n: 5 }
+  - type: vector-lab
+    title: "The vector tracks the running product (updateWord_product + value_recovery)"
+    config: { monoid: "ℤ/3 = {1, g, g²}", show: ["track", "action"] }
+  - type: graph-lab
+    title: "The same fibre as a path language: states ℤ/3, each block adds its a-count"
+    config: { D: "a, ba, bb", k: 3, x: 0, y: 2, n: 5, G: "count a's mod k" }
 quiz:
   - q: "Which words appear on the right-hand side?"
     type: choice

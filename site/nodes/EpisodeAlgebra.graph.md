@@ -6,10 +6,12 @@ review: draft
 authors: [grok-bot]
 caveats:
   - "The `∃ es` means one good cutting is enough. If `D` is not a prefix code, a word may have several cuttings that end at different states, and the word is in `graph D G x y` for each of those end states `y`."
+  - "The widget enumerates only words of length ≤ n, and only over non-empty blocks — with `[] ∈ D` there are infinitely many block lists for the same word, so it would not terminate. Prefix codes, which is what the proof uses, exclude `[] ∈ D` anyway."
+  - "The widget's states are ℤ/k and `G` adds each block's a-count. That is a legitimate instance of `graph D G x y`, not the one the proof builds."
 widgets:
-  - type: graph-walk
-    title: "Words in graph D G x y, with a witness cutting"
-    config: { E: "a, ba, bb", k: 3, x: 0, y: 1, n: 5 }
+  - type: graph-lab
+    title: "Walk a block list from x to y, and list every word that gets there"
+    config: { D: "a, ba, bb", k: 3, x: 0, y: 1, n: 5, G: "count a's mod k" }
 quiz:
   - q: "Is the empty word in `graph D G x x`?"
     type: choice

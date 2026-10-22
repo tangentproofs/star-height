@@ -79,19 +79,56 @@ Every `explain` should point at the Lean that makes the answer right.
 
 ### Widgets
 
+Widgets are the main way a reader gets hands-on with a definition. Prefer one of the
+interactive types; they all run entirely in the browser with no dependencies.
+
+| type | what it shows | config keys |
+|---|---|---|
+| `build` | build an `Expression` by pressing one button per constructor (a stack: atoms push, `compl`/`star` pop one, `union`/`concat` pop two); annotated subterm tree, Lean term, words up to n | `alphabet`, `n`, `start` |
+| `lang-tree` | `Expression.language` clause by clause: one row per subterm with its clause and word set; click a word to trace which subterms contain it | `expr`, `alphabet`, `n` |
+| `height-lab` | pick a subterm and wrap it in `compl` (height unchanged) or `star` (+1), with a running tally | `expr`, `alphabet`, `n` |
+| `union-lab` | a finite union and its height (the max); `words: true` builds what `HasHeightAtMost.finite`/`singleton` build | `items`, `words`, `alphabet`, `n` |
+| `dfa-lab` | editable DFA (cycle transitions, toggle accepting, move the start) with an SVG diagram, a per-letter run stepper, and the transition monoid building up by word length — including `\|M\| = \|Q\|^\|Q\|` vs the elements actually realized as `T w` | `dfa`, `word` |
+| `factor-lab` | `factor_remainder` one peel at a time on a word strip; when `E` is not a prefix code the reader picks the block | `E`, `word` |
+| `blocks` | assemble a block list: `AllIn D es`, `es.flatten`, and the `updateWord` fold step by step | `D`, `es`, `G`, `k`, `x` |
+| `graph-lab` | `graph D G x y` as a graph: click the endpoints, step a block list along the edges, and list every word of length ≤ n that gets there with a witness | `D`, `k`, `x`, `y`, `n`, `G` |
+| `vector-lab` | `RightRegular`: clickable `V M` bit vectors, `basis`, the 0/1 matrix of `action M d`, and the running-product track (`updateWord_product`, `value_recovery`) | `monoid`, `show` (any of `vectors`, `basis`, `action`, `track`) |
+| `decompose` | the `recognized_height_three` set identity computed end to end: factor a word, read off d and f, check d·f ∈ F against the DFA, and count the qualifying pairs | `dfa`, `E`, `word` |
+| `walkthrough` | a proof outline you step through, with the Lean of each step and links to the nodes it uses | `steps: [{text, lean?, note?, link?, uses?, hard?}]` |
+
+Simpler one-shot variants, kept for compact use (the playground uses the first two):
+
 | type | what it shows | config keys |
 |---|---|---|
 | `regex` | parse a generalized regex; height, Lean term, subterm heights, words up to length n | `expr`, `alphabet`, `n`, `presets` |
 | `compare` | two expressions: heights, and where their languages differ up to length n | `left`, `right`, `alphabet`, `n` |
-| `dfa-monoid` | a preset DFA's transition monoid, and `T(w)` for a word | `dfa` (`"even number of a's"`, `"contains ab"`, `"ends with b"`, `"(ab)*"`), `word` |
+| `dfa-monoid` | a preset DFA's transition monoid, and `T(w)` for a word | `dfa`, `word` |
 | `factor` | prefix-code check and the cut `w = es.flatten ++ r` | `E`, `word` |
 | `graph-walk` | words in `graph D G x y` for G = "add #a mod k" | `E`, `k`, `x`, `y`, `n` |
 | `right-regular` | `basis` and `action` on `V M = M → ZMod 2` for small monoids | `monoid` |
 | `outline` | a vertical proof outline with links | `steps: [{text, link?, note?, hard?}]` |
 
-New widget types go in `site/assets/widgets.js` (register them in `REGISTRY`) and the
-`enum` in the schema. The playground engine (`site/assets/regex.js`) has tests in
-`site/tools/test_regex.mjs`.
+**A demo must match the Lean.** Where it can only check finitely much (words up to length
+n, one hand-picked `E`, a toy monoid), say so under `caveats` and call it evidence.
+
+New widget types go in `site/assets/widgets-interactive.js` (export them from
+`INTERACTIVE`, which `widgets.js` merges into `REGISTRY`) and the `enum` in the schema.
+
+Put the logic a widget shows in one of the modules that mirror the Lean, not in the
+widget itself, and test it:
+
+| module | mirrors |
+|---|---|
+| `site/assets/regex.js` | `Expression`, `language`, `height`, plus the `singleton`/`iSup` builders |
+| `site/assets/automata.js` | `FiniteRecognition.transition` / `of_regular` |
+| `site/assets/episodes.js` | `EpisodeAlgebra`: `PrefixCode`, `remainder`, `AllIn`, `updateWord`, `graph`, `factor_remainder` |
+| `site/assets/vectors.js` | `RightRegular`: `V`, `basis`, `action`, `value_recovery` |
+| `site/assets/dom.js` | shared element helpers and the stepper control |
+
+Tests live in `site/tools/test_regex.mjs` and `site/tools/test_widgets.mjs`; both run
+under `npm test`. Assert against the Lean statement, not against the widget's output
+(for example: that `T` is a monoid homomorphism, that every `graph` witness satisfies
+`AllIn`/`flatten`/`updateWord`, that `action (d * e) = action e ∘ action d`).
 
 ## Check locally
 

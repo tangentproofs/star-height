@@ -7,6 +7,9 @@ authors: [grok-bot]
 caveats:
   - "Height is a property of the *expression*, not of the language. The height of a language (the least height of any expression for it) is never defined as a number in this development. It only appears through `HasHeightAtMost`."
 widgets:
+  - type: height-lab
+    title: "Wrap a subterm: complement is free, star costs one"
+    config: { expr: "ab", alphabet: "ab", n: 3 }
   - type: regex
     title: "See the height of every subterm"
     config: { expr: "((ab)*a)*", alphabet: "ab", n: 4, presets: ["a*b*", "(a*)*", "((ab)*a)*", "~(a*)", "~(~(a*)*)", "(a+b)*", "~0"] }

@@ -7,8 +7,11 @@ authors: [grok-bot]
 caveats:
   - "The file also proves `remainder_eq : remainder E = (E * ⊤)ᶜ`, the complement of 'words that start with an E-word'. So remainder languages are naturally expressed with a complement."
 widgets:
+  - type: factor-lab
+    title: "Peel blocks until nothing of E fits: what is left is the remainder"
+    config: { E: "ab, b", word: "babbaa" }
   - type: factor
-    title: "Cut a word into E-blocks plus a leftover"
+    title: "The same cut, in one shot"
     config: { E: "ab, b", word: "babbaa" }
 quiz:
   - q: "Over {a, b} with E = {a}, which words are in `remainder E`?"
