@@ -152,3 +152,41 @@ export function maxN(alphabet, cap = 6000) {
   let n = 0, total = 1, layer = 1;
   while (true) { layer *= alphabet.length; if (total + layer > cap || n >= 14) return n; total += layer; n++; }
 }
+
+// ---------------------------------------------------------------- subterm addressing
+// A path is a list of "l" / "r" / "e" steps, matching the field names used above.
+// Preorder, the same order `tree` emits.
+export function subterms(e, path = [], out = []) {
+  out.push({ path, e });
+  if (e.l) { subterms(e.l, [...path, "l"], out); subterms(e.r, [...path, "r"], out); }
+  if (e.e) subterms(e.e, [...path, "e"], out);
+  return out;
+}
+
+export function atPath(e, path) {
+  let cur = e;
+  for (const step of path) cur = cur[step];
+  return cur;
+}
+
+// Rebuild `e` with the subterm at `path` replaced by `f(subterm)`. Pure; `e` is untouched.
+export function replaceAt(e, path, f) {
+  if (!path.length) return f(e);
+  const [step, ...rest] = path;
+  return { ...e, [step]: replaceAt(e[step], rest, f) };
+}
+
+// ---------------------------------------------------------------- building expressions
+// Mirrors HasHeightAtMost.singleton (Height.lean): [] ↦ .one, a :: w ↦ .concat (.letter a) (singleton w).
+export function singletonExpr(w) {
+  let out = { t: "one" };
+  for (const a of [...w].reverse()) out = { t: "concat", l: { t: "letter", a }, r: out };
+  return out;
+}
+
+// Mirrors the fold in HasHeightAtMost.finset_iSup: ∅ ↦ .zero, insert i s ↦ .union (L i) (⨆ s).
+export function unionExpr(list) {
+  let out = { t: "zero" };
+  for (const e of [...list].reverse()) out = { t: "union", l: e, r: out };
+  return out;
+}
