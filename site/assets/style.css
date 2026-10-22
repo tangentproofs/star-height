@@ -15,6 +15,7 @@ header.top { display: flex; align-items: center; gap: 1.5rem; padding: .6rem 1.2
 header nav { display: flex; gap: 1rem; flex-wrap: wrap; } header nav a { color: var(--dim); } header nav a:hover, header nav a.on { color: var(--fg); }
 main { max-width: 1100px; margin: 0 auto; padding: 1rem 1.2rem 3rem; }
 main.wide { max-width: none; }
+main.node { max-width: 1560px; }
 footer { color: var(--dim); font-size: .85rem; text-align: center; padding: 1.5rem; border-top: 1px solid var(--line); }
 h1 { font-size: 1.6rem; margin: .4rem 0 .2rem; } h2 { font-size: 1.2rem; margin-top: 1.8rem; border-bottom: 1px solid var(--line); padding-bottom: .2rem; }
 h3 { font-size: 1.05rem; }
@@ -52,11 +53,31 @@ input[type=text], textarea { width: 100%; }
 #side h3 { margin-top: 0; }
 
 /* node page */
+/* Side by side: plain English (left) against the formal statement (right). minmax(0, …) lets wide
+   Lean scroll inside its own box instead of stretching the grid. The formal column sticks below the
+   header while the left column scrolls, and scrolls itself if it is taller than the viewport. */
+.sbs { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 2rem; align-items: start; }
+.sbs > section > :first-child { margin-top: 0; }
+.sbs .eli5 > h2:first-child, .sbs-formal-inner > h2:first-child, .sbs-plain > h2:first-child { margin-top: 1.2rem; }
+.sbs-formal { align-self: stretch; }
+.sbs-formal-inner { position: sticky; top: calc(var(--hdr, 3.2rem) + .5rem); max-height: calc(100vh - var(--hdr, 3.2rem) - 1rem); overflow-y: auto; overscroll-behavior: contain; padding-right: .2rem; }
+.sbs-formal pre.lean { max-width: 100%; }
+.sbs .caveats { margin-top: 1.4rem; }
+.node-head .summary { margin: .6rem 0; max-width: 60rem; }
+.node-head h1 { overflow-wrap: anywhere; }
+details.usedby summary { cursor: pointer; margin: .3rem 0; }
+#content { max-width: 960px; }
+#content > .signoff:first-child { margin-top: 1.6rem; }
+@media (max-width: 800px) {
+  .sbs { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .sbs-formal-inner { position: static; max-height: none; overflow: visible; padding-right: 0; }
+}
 .node-head .name { font-family: ui-monospace, monospace; color: var(--dim); font-size: .9rem; word-break: break-all; }
 .deps { display: flex; flex-wrap: wrap; gap: .35rem; margin: .3rem 0; } .deps a, .deps span { font-family: ui-monospace, monospace; font-size: .82rem; padding: .05rem .45rem; border-radius: 4px; background: var(--panel2); border: 1px solid var(--line); }
 .deps a.st-both { border-color: var(--both); color: var(--both); } .deps a.st-quiz { border-color: var(--quiz); color: var(--quiz); }
 .deps a.st-signed { border-color: var(--signed); color: var(--signed); }
 .deps a.st-stub { color: var(--dim); }
+.deps a, .deps span { max-width: 100%; overflow-wrap: anywhere; }
 .eli5 { font-size: 1.02rem; } .eli5 h2 { color: var(--yellow); border-color: var(--line); }
 .caveats { border-left: 3px solid var(--orange); } .caveats li { margin: .3rem 0; }
 .stub { border-left: 3px solid var(--unread); }

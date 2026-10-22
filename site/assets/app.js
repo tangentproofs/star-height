@@ -255,40 +255,55 @@ function nodePage(id) {
   const editUrl = n ? `https://github.com/${REPO}/edit/main/site/nodes/${encodeURIComponent(id)}.md`
     : `https://github.com/${REPO}/new/main/site/nodes?filename=${encodeURIComponent(id)}.md`;
   const pendingDeps = d.meaningDeps.filter((x) => !understood(x));
+  app.className = "node";
+  // Layout (see .sbs in style.css): plain English on the left, the formal statement on the right
+  // (sticky on desktop), so the two can be read against each other; stacked plain-first on narrow
+  // screens. Below: the "I understand" assertion, then the optional bonus quiz, then widgets.
   app.innerHTML = `
     <div class="node-head">
       <p class="small"><a href="#/">← graph</a></p>
       <h1>${n ? esc(n.title) : esc(id)}</h1>
       <div><span class="pill kind-${d.kind}">${d.kind}</span><span class="pill st-${st}">${statusLabel(id)}</span>${n ? `<span class="pill ${n.review === "draft" ? "draft" : ""}">${n.review}</span>` : ""}
       <span class="name">${esc(d.name)}</span></div>
-      ${n ? `<p class="eli5" style="margin:.6rem 0">${n.summaryHtml}</p>` : ""}
+      ${n ? `<p class="eli5 summary">${n.summaryHtml}</p>` : ""}
     </div>
-    <h2>Formal statement</h2>
-    <pre class="lean">${highlight(d.statement, links)}${d.truncated ? `<span class="cm"> := … (proof omitted)</span>` : ""}</pre>
-    <p class="small muted"><a href="${src}" target="_blank" rel="noopener">${esc(d.file)} lines ${d.line}–${d.endLine}</a>
-    ${d.variables.length ? ` · section variables in scope: <code>${esc(d.variables.join("  "))}</code>` : ""}</p>
-    <div class="small">
-      <div><b>Mentions</b> (understand these first): <div class="deps">${depLinks(d.meaningDeps)}</div></div>
-      ${d.kind === "theorem" ? `<div><b>Proof uses</b>: <div class="deps">${depLinks(d.proofDeps)}</div></div>` : ""}
-      <div><b>Used by</b>: <div class="deps">${depLinks(d.usedBy.slice(0, 40))}${d.usedBy.length > 40 ? `<span>+${d.usedBy.length - 40} more</span>` : ""}</div></div>
-      ${d.mathlib.length ? `<div><b>From Mathlib</b> (taken as given): <div class="deps">${d.mathlib.map((m) => `<a href="${MATHLIB_DOCS(m)}" target="_blank" rel="noopener">${esc(m)}</a>`).join("")}</div></div>` : ""}
+    <div class="sbs">
+      <section class="sbs-plain" id="plain"></section>
+      <section class="sbs-formal"><div class="sbs-formal-inner">
+        <h2>Formal statement</h2>
+        <pre class="lean">${highlight(d.statement, links)}${d.truncated ? `<span class="cm"> := … (proof omitted)</span>` : ""}</pre>
+        <p class="small muted"><a href="${src}" target="_blank" rel="noopener">${esc(d.file)} lines ${d.line}–${d.endLine}</a>
+        ${d.variables.length ? ` · section variables in scope: <code>${esc(d.variables.join("  "))}</code>` : ""}</p>
+        <div class="small">
+          <div><b>Mentions</b> (understand these first): <div class="deps">${depLinks(d.meaningDeps)}</div></div>
+          ${d.kind !== "theorem" ? "" : d.proofDeps.length > 12 ? `<details class="usedby"><summary><b>Proof uses</b> (${d.proofDeps.length})</summary><div class="deps">${depLinks(d.proofDeps)}</div></details>` : `<div><b>Proof uses</b>: <div class="deps">${depLinks(d.proofDeps)}</div></div>`}
+          ${d.mathlib.length ? `<div><b>From Mathlib</b> (taken as given): <div class="deps">${d.mathlib.map((m) => `<a href="${MATHLIB_DOCS(m)}" target="_blank" rel="noopener">${esc(m)}</a>`).join("")}</div></div>` : ""}
+          ${d.usedBy.length ? `<details class="usedby"><summary><b>Used by</b> (${d.usedBy.length})</summary><div class="deps">${depLinks(d.usedBy.slice(0, 40))}${d.usedBy.length > 40 ? `<span>+${d.usedBy.length - 40} more</span>` : ""}</div></details>` : `<div><b>Used by</b>: <span class="muted">nothing in this project</span></div>`}
+        </div>
+      </div></section>
     </div>
     <div id="content"></div>`;
+  document.documentElement.style.setProperty("--hdr", (document.querySelector("header.top")?.offsetHeight || 0) + "px");
+  const plain = document.getElementById("plain");
   const c = document.getElementById("content");
   if (!n) {
-    c.innerHTML = `
+    plain.innerHTML = `
+      <h2>Plain English</h2>
       <div class="panel stub"><h3>Needs explainer</h3>
       <p>Nobody has written a plain-English explanation and quiz for this declaration yet, so it can't be signed off.
       <a href="${editUrl}" target="_blank" rel="noopener">Write one on GitHub</a> (see <a href="https://github.com/${REPO}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>).</p>
       <details><summary>Prompt for an AI agent</summary><textarea class="prompt" readonly>${esc(agentPrompt(d))}</textarea></details></div>`;
   } else {
-    c.innerHTML = `
+    plain.innerHTML = `
       <div class="eli5">${n.bodyHtml}</div>
-      <div id="widgets"></div>
-      ${n.caveatsHtml.length ? `<div class="panel caveats"><h3>Faithfulness notes</h3><ul>${n.caveatsHtml.map((x) => `<li>${x}</li>`).join("")}</ul></div>` : ""}
-      <h2>Check your understanding</h2>
-      <div class="panel quiz" id="quiz"></div>
+      ${n.caveatsHtml.length ? `<div class="panel caveats"><h3>Faithfulness notes</h3><ul>${n.caveatsHtml.map((x) => `<li>${x}</li>`).join("")}</ul></div>` : ""}`;
+    c.innerHTML = `
       <div class="panel signoff" id="signoff"></div>
+      <h2>Bonus: check yourself</h2>
+      <p class="small muted">Optional. Passing the quiz turns the node a darker green.</p>
+      <div class="panel quiz" id="quiz"></div>
+      ${(n.widgets || []).length ? `<h2>Explore</h2>` : ""}
+      <div id="widgets"></div>
       <p class="small muted">Spotted an error or have a better explanation? <a href="${editUrl}" target="_blank" rel="noopener">Edit this node on GitHub</a>
       · <details style="display:inline"><summary>agent prompt</summary><textarea class="prompt" readonly>${esc(agentPrompt(d))}</textarea></details></p>`;
     const w = document.getElementById("widgets");
@@ -346,13 +361,13 @@ function renderSignoff(id) {
   const pending = d.meaningDeps.filter((x) => !understood(x));
   box.classList.remove("locked");
   const links = (xs) => xs.map((x) => `<a href="#/node/${encodeURIComponent(x)}">${esc(x)}</a>`).join(", ");
-  const quizNote = r.quizPassed ? "" : ` Passing the quiz above as well turns it <b>dark green</b>.`;
+  const quizNote = r.quizPassed ? "" : ` Passing the bonus quiz below as well turns it <b>dark green</b>.`;
   box.innerHTML = `
     <label><input type="checkbox" id="so" ${r.signedOff ? "checked" : ""}>
     <b>I understand the formal statement</b> — I could explain what the Lean above says, including its hypotheses, to someone else.</label>
     <p class="small muted">${understood(id) ? `<span class="status-line" style="color:var(--both)">✓ Understood: you've marked this and everything it mentions.</span>${quizNote}`
       : r.signedOff ? `Marked understood. It counts as <b>understood</b> once these are understood too: ${links(pending)}.${quizNote}`
-      : `Tick this whenever you're ready: the quiz is optional, and passing it as well gives the darker green.${pending.length ? ` Mentions still to understand: ${links(pending)}.` : ""}`}</p>`;
+      : `Tick this whenever you're ready. The bonus quiz below is optional; passing it as well gives the darker green.${pending.length ? ` Mentions still to understand: ${links(pending)}.` : ""}`}</p>`;
   const so = document.getElementById("so");
   if (so) so.onchange = () => { if (so.checked) r.signedOff = Date.now(); else delete r.signedOff; save(); renderSignoff(id); updateHeaderPill(id); };
   updateHeaderPill(id);

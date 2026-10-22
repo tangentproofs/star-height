@@ -59,6 +59,10 @@ The explanation. Markdown, tables and inline HTML are fine. Link to other nodes 
 [graph](#/node/EpisodeAlgebra.graph).
 ```
 
+On wide screens the body sits to the left of the formal statement, so open it with a sentence or
+two that reads the statement itself: the reader compares that opening directly against the Lean
+beside it. Widgets appear further down the page, after the sign-off and the bonus quiz.
+
 The schema is `site/schema/node.schema.json`. `site/tools/build_site.mjs` also checks:
 
 - the `id` matches the file name and is a real declaration;
