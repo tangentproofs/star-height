@@ -116,11 +116,13 @@ textarea.prompt { height: 10rem; font-family: ui-monospace, monospace; font-size
 
 /* diagrams */
 .diagram { margin: .4rem 0; }
-svg.dfa { width: 100%; max-width: 420px; height: auto; display: block; }
+svg.dfa { width: 100%; max-width: 330px; height: auto; display: block; margin: 0 auto; }
 svg.dfa text { pointer-events: none; }
 svg.dfa text.slab { fill: var(--fg); font: 600 11px ui-monospace, monospace; text-anchor: middle; }
 svg.dfa text.elab { font: 10px ui-monospace, monospace; text-anchor: middle; }
 svg.dfa circle.statedot { cursor: pointer; }
+.ring { display: inline-block; width: .8em; height: .8em; border-radius: 50%; vertical-align: -1px; border: 2px solid var(--pink); }
+.ring.y { border-color: var(--blue); }
 
 /* tables */
 table.t.edit button.cyc { padding: 0 .4rem; min-width: 3em; }

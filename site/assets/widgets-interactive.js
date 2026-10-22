@@ -14,6 +14,12 @@ const CLAUSE = {
 };
 const HCLAUSE = { zero: "0", one: "0", letter: "0", union: "max", concat: "max", compl: "same as P", star: "1 + P.height" };
 const label = (e) => (e.t === "letter" ? `.letter '${e.a}'` : "." + e.t);
+// A point on a quadratic Bézier; edge labels sit off the midpoint so that two edges
+// bending through the middle of the picture do not print on top of each other.
+const bezierAt = (t, x0, y0, cx, cy, x1, y1) => {
+  const u = 1 - t;
+  return [u * u * x0 + 2 * u * t * cx + t * t * x1, u * u * y0 + 2 * u * t * cy + t * t * y1];
+};
 
 // An annotated tree of subterms. `onpick` makes rows clickable; `extra(node)` adds a cell.
 function treeView(e, { onpick, selected, extra } = {}) {
@@ -244,9 +250,10 @@ function dfaLabWidget(el, cfg = {}) {
   wIn.addEventListener("input", () => { word = [...wIn.value].filter((c) => D.A.includes(c)).join(""); step = null; run(); });
 
   function diagram(cur, usedEdge) {
-    const n = D.Q.length, R = 18, cx = 160, cy = 92, rad = n === 1 ? 0 : Math.min(62, 26 + 14 * n);
+    const n = D.Q.length, R = 18, cx = 160, cy = 88, rad = n === 1 ? 0 : Math.min(48, 18 + 11 * n);
     const pos = D.Q.map((_, i) => { const t = -Math.PI / 2 + (2 * Math.PI * i) / n; return [cx + rad * Math.cos(t), cy + rad * Math.sin(t)]; });
-    const g = svg("svg", { viewBox: "0 0 320 184", class: "dfa" });
+    const span = rad + 52;   // nodes sit at `rad` from the centre; self-loops and labels add ~48
+    const g = svg("svg", { viewBox: `${cx - span} ${cy - span} ${2 * span} ${2 * span}`, class: "dfa" });
     g.append(svg("defs", {}, svg("marker", { id: "ah", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 5, markerHeight: 5, orient: "auto-start-reverse" },
       svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: "#a59f85" }))));
     const grouped = new Map();
@@ -262,17 +269,20 @@ function dfaLabWidget(el, cfg = {}) {
         const m = Math.hypot(ox, oy), ux = rad ? ox / m : 0, uy = rad ? oy / m : -1;
         const sx = x + ux * R * 0.4 - uy * R * 0.8, sy = y + uy * R * 0.4 + ux * R * 0.8;
         const ex = x + ux * R * 0.4 + uy * R * 0.8, ey = y + uy * R * 0.4 - ux * R * 0.8;
-        g.append(svg("path", { d: `M ${sx} ${sy} C ${x + ux * 54 - uy * 20} ${y + uy * 54 + ux * 20}, ${x + ux * 54 + uy * 20} ${y + uy * 54 - ux * 20}, ${ex} ${ey}`, fill: "none", stroke: col, "stroke-width": used ? 2.4 : 1.2, "marker-end": "url(#ah)" }));
-        g.append(svg("text", { x: x + ux * 46, y: y + uy * 46 + 4, class: "elab", fill: col }, document.createTextNode(ls.join(","))));
+        g.append(svg("path", { d: `M ${sx} ${sy} C ${x + ux * 40 - uy * 17} ${y + uy * 40 + ux * 17}, ${x + ux * 40 + uy * 17} ${y + uy * 40 - ux * 17}, ${ex} ${ey}`, fill: "none", stroke: col, "stroke-width": used ? 2.4 : 1.2, "marker-end": "url(#ah)" }));
+        g.append(svg("text", { x: x + ux * 36, y: y + uy * 36 + 4, class: "elab", fill: col }, document.createTextNode(ls.join(","))));
       } else {
         const [x1, y1] = pos[p], [x2, y2] = pos[q];
         const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy);
-        const nx = -dy / L, ny = dx / L, bend = 20;
+        const nx = -dy / L, ny = dx / L, bend = 24;
         const mx = (x1 + x2) / 2 + nx * bend, my = (y1 + y2) / 2 + ny * bend;
         const sx = x1 + (dx / L) * R + nx * 4, sy = y1 + (dy / L) * R + ny * 4;
         const ex = x2 - (dx / L) * R + nx * 4, ey = y2 - (dy / L) * R + ny * 4;
         g.append(svg("path", { d: `M ${sx} ${sy} Q ${mx} ${my} ${ex} ${ey}`, fill: "none", stroke: col, "stroke-width": used ? 2.4 : 1.2, "marker-end": "url(#ah)" }));
-        g.append(svg("text", { x: mx + nx * 7, y: my + ny * 7 + 4, class: "elab", fill: col }, document.createTextNode(ls.join(","))));
+        // On the arc, nudged outward: three edges bending through the middle would
+        // otherwise print their labels on top of each other.
+        const [lx, ly] = bezierAt(0.5, sx, sy, mx, my, ex, ey);
+        g.append(svg("text", { x: lx - nx * 15, y: ly - ny * 15 + 4, class: "elab", fill: col }, document.createTextNode(ls.join(","))));
       }
     }
     D.Q.forEach((nm, i) => {
@@ -461,9 +471,10 @@ function graphLabWidget(el, cfg = {}) {
     h("div", { class: "row", id: "xysel" }), diag, pad, out);
 
   function draw(k, G, D) {
-    const R = 17, cx = 160, cy = 86, rad = k === 1 ? 0 : Math.min(58, 22 + 13 * k);
+    const R = 17, cx = 160, cy = 88, rad = k === 1 ? 0 : Math.min(48, 18 + 11 * k);
     const pos = [...Array(k).keys()].map((i) => { const t = -Math.PI / 2 + (2 * Math.PI * i) / k; return [cx + rad * Math.cos(t), cy + rad * Math.sin(t)]; });
-    const g = svg("svg", { viewBox: "0 0 320 172", class: "dfa" });
+    const span = rad + 52;
+    const g = svg("svg", { viewBox: `${cx - span} ${cy - span} ${2 * span} ${2 * span}`, class: "dfa" });
     g.append(svg("defs", {}, svg("marker", { id: "ah2", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 5, markerHeight: 5, orient: "auto-start-reverse" },
       svg("path", { d: "M 0 0 L 10 5 L 0 10 z", fill: "#a59f85" }))));
     const tr = updateTrace(G, x, es);
@@ -480,13 +491,18 @@ function graphLabWidget(el, cfg = {}) {
       if (s === t) {
         const ox = x1 - cx || 0.001, oy = y1 - cy || -1, m = Math.hypot(ox, oy);
         const ux = rad ? ox / m : 0, uy = rad ? oy / m : -1;
-        g.append(svg("path", { d: `M ${x1 + ux * 7 - uy * 14} ${y1 + uy * 7 + ux * 14} C ${x1 + ux * 50 - uy * 18} ${y1 + uy * 50 + ux * 18}, ${x1 + ux * 50 + uy * 18} ${y1 + uy * 50 - ux * 18}, ${x1 + ux * 7 + uy * 14} ${y1 + uy * 7 - ux * 14}`, fill: "none", stroke: col, "stroke-width": used ? 2.4 : 1.2, "marker-end": "url(#ah2)" }));
-        g.append(svg("text", { x: x1 + ux * 44, y: y1 + uy * 44 + 4, class: "elab", fill: col }, document.createTextNode(ls.join(","))));
+        g.append(svg("path", { d: `M ${x1 + ux * 7 - uy * 13} ${y1 + uy * 7 + ux * 13} C ${x1 + ux * 40 - uy * 16} ${y1 + uy * 40 + ux * 16}, ${x1 + ux * 40 + uy * 16} ${y1 + uy * 40 - ux * 16}, ${x1 + ux * 7 + uy * 13} ${y1 + uy * 7 - ux * 13}`, fill: "none", stroke: col, "stroke-width": used ? 2.4 : 1.2, "marker-end": "url(#ah2)" }));
+        g.append(svg("text", { x: x1 + ux * 36, y: y1 + uy * 36 + 4, class: "elab", fill: col }, document.createTextNode(ls.join(","))));
       } else {
         const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy), nx = -dy / L, ny = dx / L;
-        const mx = (x1 + x2) / 2 + nx * 18, my = (y1 + y2) / 2 + ny * 18;
-        g.append(svg("path", { d: `M ${x1 + (dx / L) * R + nx * 4} ${y1 + (dy / L) * R + ny * 4} Q ${mx} ${my} ${x2 - (dx / L) * R + nx * 4} ${y2 - (dy / L) * R + ny * 4}`, fill: "none", stroke: col, "stroke-width": used ? 2.4 : 1.2, "marker-end": "url(#ah2)" }));
-        g.append(svg("text", { x: mx + nx * 7, y: my + ny * 7 + 4, class: "elab", fill: col }, document.createTextNode(ls.join(","))));
+        const sx = x1 + (dx / L) * R + nx * 4, sy = y1 + (dy / L) * R + ny * 4;
+        const ex = x2 - (dx / L) * R + nx * 4, ey = y2 - (dy / L) * R + ny * 4;
+        const mx = (x1 + x2) / 2 + nx * 24, my = (y1 + y2) / 2 + ny * 24;
+        g.append(svg("path", { d: `M ${sx} ${sy} Q ${mx} ${my} ${ex} ${ey}`, fill: "none", stroke: col, "stroke-width": used ? 2.4 : 1.2, "marker-end": "url(#ah2)" }));
+        // On the arc, nudged outward: three edges bending through the middle would
+        // otherwise print their labels on top of each other.
+        const [lx, ly] = bezierAt(0.5, sx, sy, mx, my, ex, ey);
+        g.append(svg("text", { x: lx - nx * 15, y: ly - ny * 15 + 4, class: "elab", fill: col }, document.createTextNode(ls.join(","))));
       }
     }
     const here = tr[Math.min(cur, es.length)];
@@ -496,8 +512,7 @@ function graphLabWidget(el, cfg = {}) {
       c.addEventListener("contextmenu", (ev) => { ev.preventDefault(); y = i; run(); });
       g.append(c);
       g.append(svg("text", { x: px, y: py + 4, class: "slab" }, document.createTextNode(String(i))));
-      if (i === x) g.append(svg("text", { x: px, y: py - R - 5, class: "elab", fill: "#f92672" }, document.createTextNode("x")));
-      if (i === y) g.append(svg("text", { x: px, y: py + R + 12, class: "elab", fill: "#66d9ef" }, document.createTextNode("y")));
+
     });
     return g;
   }
@@ -514,6 +529,7 @@ function graphLabWidget(el, cfg = {}) {
       btn(`start x (now ${x})`, () => { setting = "x"; run(); }, { class: setting === "x" ? "primary" : "" }),
       btn(`target y (now ${y})`, () => { setting = "y"; run(); }, { class: setting === "y" ? "primary" : "" }));
     diag.innerHTML = ""; diag.append(draw(k, G, D));
+    diag.append(h("p", { class: "small muted", style: "text-align:center", html: `<span class="ring x"></span> start x = ${x} &nbsp; <span class="ring y"></span> target y = ${y}` }));
     const tr = updateTrace(G, x, es);
     pad.innerHTML = "";
     pad.append(h("div", { class: "row" }, h("span", { class: "small muted" }, "append a block:"),
@@ -577,7 +593,8 @@ function vectorLabWidget(el, cfg = {}) {
   function run() {
     const M = MONOIDS[sel.value], n = M.names.length, d = +dSel.value;
     body.innerHTML = "";
-    if (sections.includes("vectors")) {
+    const SECT = {};
+    SECT.vectors = () => {
       const box = h("div", { class: "sect" });
       box.append(h("h4", {}, `V M = M → ZMod 2`),
         h("p", { class: "small muted", html: `A vector is one bit per monoid element — click to flip. |M| = ${n}, so <code>V M</code> has 2<sup>${n}</sup> = <b>${2 ** n}</b> vectors.` }),
@@ -586,8 +603,8 @@ function vectorLabWidget(el, cfg = {}) {
         h("div", { class: "row" }, h("span", { class: "small muted" }, "v + w ="), bits(M, addVec(v, w2))),
         h("p", { class: "small muted" }, "Addition is coordinatewise in ZMod 2, so 1 + 1 = 0: it is XOR, and every vector is its own negative."));
       body.append(box);
-    }
-    if (sections.includes("basis")) {
+    };
+    SECT.basis = () => {
       const box = h("div", { class: "sect" });
       box.append(h("h4", {}, "basis M m"),
         h("p", { class: "small muted", html: "<code>Pi.basisFun</code>: <code>basis M m</code> is 1 at m and 0 elsewhere. Pick an m:" }),
@@ -595,8 +612,8 @@ function vectorLabWidget(el, cfg = {}) {
         h("div", { class: "row" }, h("span", { class: "small muted" }, "current v ="), bits(M, v)),
         h("p", { class: "small muted", html: `v ${M.names.map((_, i) => i).some((i) => eqVec(v, basis(n, i))) ? `= <code>basis ${M.names[v.indexOf(1)]}</code>` : "is not a basis vector (it has " + v.filter(Boolean).length + " ones)"} — distinct m give distinct vectors (<code>basis_injective</code>), so a basis vector <i>remembers</i> its monoid element.` }));
       body.append(box);
-    }
-    if (sections.includes("action")) {
+    };
+    SECT.action = () => {
       const mat = actionMatrix(M, d), img = applyAction(M, d, v);
       const box = h("div", { class: "sect" });
       const t = h("table", { class: "t mat" });
@@ -615,8 +632,8 @@ function vectorLabWidget(el, cfg = {}) {
         })()}` }),
         h("p", { class: "small muted", html: `<code>value_recovery</code>: <code>action d (basis 1) = basis d</code> — ${(() => { const r = applyAction(M, d, basis(n, 0)); return eqVec(r, basis(n, d)) ? `checks here (${M.names[d]} = 1 · ${M.names[d]})` : "fails?!"; })()}.` }));
       body.append(box);
-    }
-    if (sections.includes("track")) {
+    };
+    SECT.track = () => {
       const box = h("div", { class: "sect" });
       const tr = trackTrace(M, ds);
       const i = Math.min(cur, ds.length);
@@ -634,7 +651,8 @@ function vectorLabWidget(el, cfg = {}) {
         h("p", { html: `running product = <b>${esc(M.names[tr[i].prod])}</b> &nbsp;·&nbsp; vector = <code>basis ${esc(M.names[tr[i].prod])}</code>: ${yes(eqVec(tr[i].v, basis(n, tr[i].prod)))}` }),
         h("p", { class: "small muted" }, `blocks applied: ${ds.slice(0, i).map((j) => M.names[j]).join(" · ") || "none"}`));
       body.append(box);
-    }
+    };
+    for (const name of sections) SECT[name]?.();   // in the order the config asked for
   }
   sel.addEventListener("change", setup);
   dSel.addEventListener("change", run);
@@ -671,7 +689,7 @@ function decomposeWidget(el, cfg = {}) {
           <code>A d = {u ∈ E∗ | T u = d}</code> (height ≤ 3 via <code>graph_fiber</code>) and
           <code>B f = {v ∈ remainder E | T v = f}</code> (height ≤ 1).</li>
         <li><b>The union</b>: <code>{w | T w ∈ F} = ⨆ p : I, A p.1 * B p.2</code> over
-          I = {(d, f) | d·f ∈ F}. Among the ${M.elems.length}² = ${M.elems.length ** 2} pairs of realized elements, <b>${pairs.length}</b> qualify${pairs.length ? `: ${pairs.slice(0, 12).map(([i, j]) => `<code${i === dI && j === fI ? ' class="hit"' : ""}>(m${i},m${j})</code>`).join(" ")}${pairs.length > 12 ? " …" : ""}` : ""}.
+          I = {(d, f) | d·f ∈ F}. Among the ${M.elems.length}² = ${M.elems.length ** 2} pairs of realized elements, <b>${pairs.length}</b> qualify${pairs.length ? `: ${pairs.slice(0, 12).map(([i, j]) => `<code${i === dI && j === fI ? ' class="hit"' : ""}>(m${i},m${j})</code>`).join(" ")}${pairs.length > 12 ? ` and ${pairs.length - 12} more` : ""}` : ""}.
           Lean takes I over all of M × M (${fullMonoidSize(D)}² pairs); the extra ones give empty languages, which is harmless.</li>
       </ol>
       <p class="small muted">Everything above is computed, not asserted — but it only shows the <b>set identity</b>, which holds for any E with <code>[] ∉ E</code>.
