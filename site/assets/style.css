@@ -1,7 +1,9 @@
 :root {
   --bg: #1e1f1c; --panel: #272822; --panel2: #2f302a; --fg: #f8f8f2; --dim: #a59f85; --line: #3e3d32;
   --pink: #f92672; --orange: #fd971f; --yellow: #e6db74; --green: #a6e22e; --blue: #66d9ef; --purple: #ae81ff;
-  --unread: #75715e; --explained: #66d9ef; --quiz: #e6db74; --signed: #c3e88d; --understood: #a6e22e;
+  --unread: #75715e; --explained: #66d9ef;
+  /* progress greens (match COLORS in assets/progress.js): marked understood < quiz passed < both */
+  --signed: #d9f99d; --quiz: #a6e22e; --both: #4caf50; --pending: #ae81ff;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -21,8 +23,9 @@ h3 { font-size: 1.05rem; }
 .pill { display: inline-block; padding: 0 .55em; border-radius: 999px; font-size: .78rem; border: 1px solid var(--line); color: var(--dim); margin-right: .3em; vertical-align: middle; }
 .pill.kind-theorem { color: var(--green); border-color: var(--green); } .pill.kind-def, .pill.kind-instance { color: var(--blue); border-color: var(--blue); }
 .pill.kind-inductive { color: var(--purple); border-color: var(--purple); }
-.pill.st-understood { background: var(--understood); color: #111; border-color: var(--understood); }
-.pill.st-signed { background: var(--signed); color: #111; } .pill.st-quiz { background: var(--quiz); color: #111; }
+.pill.st-both { background: var(--both); color: #111; border-color: var(--both); }
+.pill.st-quiz { background: var(--quiz); color: #111; border-color: var(--quiz); }
+.pill.st-signed { background: var(--signed); color: #111; border-color: var(--signed); }
 .pill.st-explained { color: var(--explained); border-color: var(--explained); } .pill.st-stub { color: var(--unread); }
 .pill.draft { color: var(--orange); border-color: var(--orange); }
 
@@ -45,13 +48,14 @@ input[type=text], textarea { width: 100%; }
 .legend { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; }
 .legend span.sw { display: inline-block; width: .9em; height: .9em; border-radius: 3px; margin-right: .4em; vertical-align: -1px; }
 .progress-bar { height: 8px; background: var(--panel2); border-radius: 4px; overflow: hidden; margin: .3rem 0 .6rem; }
-.progress-bar > div { height: 100%; background: var(--understood); }
+.progress-bar > div { height: 100%; background: var(--both); }
 #side h3 { margin-top: 0; }
 
 /* node page */
 .node-head .name { font-family: ui-monospace, monospace; color: var(--dim); font-size: .9rem; word-break: break-all; }
 .deps { display: flex; flex-wrap: wrap; gap: .35rem; margin: .3rem 0; } .deps a, .deps span { font-family: ui-monospace, monospace; font-size: .82rem; padding: .05rem .45rem; border-radius: 4px; background: var(--panel2); border: 1px solid var(--line); }
-.deps a.st-understood { border-color: var(--understood); color: var(--understood); } .deps a.st-signed { border-color: var(--signed); color: var(--signed); }
+.deps a.st-both { border-color: var(--both); color: var(--both); } .deps a.st-quiz { border-color: var(--quiz); color: var(--quiz); }
+.deps a.st-signed { border-color: var(--signed); color: var(--signed); }
 .deps a.st-stub { color: var(--dim); }
 .eli5 { font-size: 1.02rem; } .eli5 h2 { color: var(--yellow); border-color: var(--line); }
 .caveats { border-left: 3px solid var(--orange); } .caveats li { margin: .3rem 0; }
@@ -61,7 +65,7 @@ input[type=text], textarea { width: 100%; }
 .quiz .ok { color: var(--green); } .quiz .bad { color: var(--pink); } .quiz .explain { display: none; background: var(--panel2); border-radius: 6px; padding: .3rem .8rem; margin-top: .4rem; font-size: .93rem; }
 .quiz .q.answered .explain { display: block; }
 .quiz input[type=text] { max-width: 18rem; }
-.signoff { border-left: 3px solid var(--green); } .signoff.locked { border-left-color: var(--unread); }
+.signoff { border-left: 3px solid var(--both); }
 .status-line { font-weight: 600; }
 .widget { background: #22231e; border: 1px dashed var(--line); border-radius: 8px; padding: .8rem 1rem; margin: 1rem 0; }
 .widget h3 { margin: 0 0 .4rem; color: var(--blue); font-size: 1rem; }

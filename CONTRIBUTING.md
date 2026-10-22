@@ -2,8 +2,10 @@
 
 The site in `site/` informalizes the Lean proof: for each declaration it shows the
 formal statement, a plain-English explanation, an optional interactive demo, and a
-quiz with an answer key. A reader can sign off on a node only after passing its quiz.
-A node counts as understood once the reader has also understood every project
+quiz with an answer key. A reader can tick "I understand" on a node at any time;
+the quiz is optional. The node shows one of three greens: lightest for "I understand" only, middle for
+quiz passed only, darkest for both (the shared logic is `assets/progress.js`, identical in every
+tangentproofs informalization site). A node counts as understood once the reader has also understood every project
 declaration its statement mentions.
 
 **The Lean is the ground truth.** An explainer is correct only if it matches the
