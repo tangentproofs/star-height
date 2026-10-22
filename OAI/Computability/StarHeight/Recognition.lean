@@ -56,7 +56,10 @@ theorem recognized_height_three {Alphabet : Type uAlphabet2} {M : Type uM2} [Fin
     [Monoid M] [Fintype M] (T : FreeMonoid Alphabet →* M) (F : Set M) :
     HasHeightAtMost ({w | T (FreeMonoid.ofList w)∈F} : Language Alphabet) 3 := by
   classical
-  obtain ⟨E,hE,hB,hG⟩ := SourceSchedule.episode_linear_graphs T (RightRegular.action M)
+  -- Port note (Mathlib 09a9e06): instance search no longer unifies the `Module (ZMod 2)`
+  -- instance on `V M` with the one `RightRegular.action` was elaborated against, so pass it.
+  obtain ⟨E,hE,hB,hG⟩ := @SourceSchedule.episode_linear_graphs Alphabet M (RightRegular.V M)
+    (ZMod 2) _ _ _ _ _ _ _ (Pi.Function.module M (ZMod 2) (ZMod 2)) _ T (RightRegular.action M)
   let A : M → Language Alphabet := fun d => {w | w∈E∗ ∧ T (FreeMonoid.ofList w)=d}
   let B : M → Language Alphabet := fun f => {w | w∈remainder E ∧ T (FreeMonoid.ofList w)=f}
   have hA : ∀ d, HasHeightAtMost (A d) 3 := by
