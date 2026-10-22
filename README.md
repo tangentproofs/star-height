@@ -37,6 +37,19 @@ theorem main {Alphabet : Type u} [Finite Alphabet] (L : Language Alphabet) (hL :
 `Language` (`+` = union, `*` = concatenation, `∗` = Kleene star, `ᶜ` = complement in `List Alphabet`)
 and Mathlib's `Language.IsRegular` (accepted by a finite DFA).
 
+## Informalization site
+
+`site/` is a static site that works backwards from the Lean to plain English. Each
+declaration gets its formal statement, a plain-English explanation, interactive demos,
+a quiz with an answer key, a sign-off, and a comment thread. A proof graph extracted
+from the compiled Lean tracks what you've understood. It deploys to GitHub Pages from
+`.github/workflows/site.yml`. See [CONTRIBUTING.md](CONTRIBUTING.md) to add explainers
+(written for humans and AI agents alike).
+
+```sh
+cd site && npm ci && npm run serve   # http://localhost:8765
+```
+
 ## Build
 
 Lean `v4.35.0-rc1` and Mathlib `09a9e06` (upstream used v4.34.1 and Mathlib `d13f23b`).
