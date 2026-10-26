@@ -9,7 +9,7 @@ import { execFileSync } from "node:child_process";
 import yaml from "js-yaml";
 import { segmentProof, buildAll } from "./build_proof_steps.mjs";
 import { pickMode, foldLean } from "../assets/proofview.js";
-import { sourceUrl, githubSourceUrl, sourceUrlFor } from "../assets/source.js";
+import { sourceUrl, githubSourceUrl, sourceUrlFor, sourceLabel } from "../assets/source.js";
 
 const SITE = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 let n = 0;
@@ -95,9 +95,20 @@ t("foldLean keeps the first line and counts the rest", () => {
 t("sourceUrl is the single source-line URL helper", () => {
   assert.equal(githubSourceUrl("A/B.lean", 3, 9), "https://github.com/tangentproofs/star-height/blob/main/A/B.lean#L3-L9");
   assert.equal(githubSourceUrl("A/B.lean", 4, 4), "https://github.com/tangentproofs/star-height/blob/main/A/B.lean#L4");
-  assert.equal(sourceUrl("A/B.lean"), "https://github.com/tangentproofs/star-height/blob/main/A/B.lean");
-  assert.equal(sourceUrlFor("src/", "A/B.lean", 3, 9), "src/A/B.lean.html#L3-L9"); // CONVENTIONS §7 on-site form, once SOURCE_BASE is set
-  const app = fs.readFileSync(path.join(SITE, "assets/app.js"), "utf8") + fs.readFileSync(path.join(SITE, "assets/proofview.js"), "utf8");
-  assert.ok(!/BLOB|#L\$\{/.test(app), "build source-line links with assets/source.js, not by hand");
+  // Reader-facing links go on-site (CONVENTIONS §7); GitHub stays the secondary link.
+  assert.equal(sourceUrl("A/B.lean", 3, 9), "src/A/B.lean.html#L3-L9");
+  assert.equal(sourceUrl("A/B.lean", 4, 4), "src/A/B.lean.html#L4");
+  assert.equal(sourceUrl("A/B.lean"), "src/A/B.lean.html");
+  assert.equal(sourceUrl("A/B.lean", 3, 9, "../../"), "../../src/A/B.lean.html#L3-L9");
+  assert.equal(sourceUrlFor(null, "A/B.lean", 3, 9), "https://github.com/tangentproofs/star-height/blob/main/A/B.lean#L3-L9");
+  assert.equal(sourceLabel("A/B.lean", 9, 28), "B.lean lines 9–28");
+  assert.equal(sourceLabel("A/B.lean", 9, 9), "B.lean line 9");
+  // No hand-built source URLs anywhere else: every link goes through assets/source.js.
+  const files = ["assets/app.js", "assets/proofview.js", "assets/walkthrough.js", "assets/widgets.js", "assets/lean.js", "tools/srcrefs.mjs", "tools/build_source.mjs"];
+  for (const f of files) {
+    const code = fs.readFileSync(path.join(SITE, f), "utf8");
+    assert.ok(!/BLOB|blob\/main\/[^"`]*\.lean|#L\$\{|src\/\$\{/.test(code), `${f}: build source-line links with assets/source.js, not by hand`);
+  }
+  assert.ok(!fs.existsSync(path.join(SITE, "assets/srclink.js")), "one source-link helper: assets/source.js");
 });
 console.log(`ok: ${n} proof-view tests`);

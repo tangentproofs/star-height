@@ -32,9 +32,10 @@ const BADGE = {
 };
 
 /** Mount the proof view for `proof` into `el`.
- *  opts: { highlight(src) → html, nodeHref(id), sourceUrl(file, from, to), storageKey } */
+ *  opts: { highlight(src) → html, nodeHref(id), sourceUrl(file, from, to), githubSourceUrl(file, from, to), storageKey }
+ *  Line links open the on-site rendered source (sourceUrl); GitHub is only the small secondary link. */
 export function mountProofView(el, proof, opts) {
-  const { highlight, nodeHref, sourceUrl, storageKey } = opts;
+  const { highlight, nodeHref, sourceUrl, githubSourceUrl, storageKey } = opts;
   const segs = proof.segments;
   const narrowQ = typeof matchMedia === "function" ? matchMedia(`(max-width: ${NARROW_PX}px)`) : { matches: false };
   const load = () => { try { return JSON.parse(localStorage.getItem(storageKey)) || {}; } catch { return {}; } };
@@ -42,7 +43,7 @@ export function mountProofView(el, proof, opts) {
   let compact = true, sel = -1;
   const opened = new Set();
   const lean = (src) => wrapLeanLines(highlight(src), src);
-  const lines = (s) => `<a class="pv-lines" href="${sourceUrl(proof.file, s.from, s.to)}" target="_blank" rel="noopener" title="open in the source">L${s.from}${s.to > s.from ? `–${s.to}` : ""}</a>`;
+  const lines = (s) => `<a class="pv-lines" href="${sourceUrl(proof.file, s.from, s.to)}" title="open these lines in the highlighted source">L${s.from}${s.to > s.from ? `–${s.to}` : ""}</a>`;
   const en = (s, k) => `
     <div class="pv-title"><span class="pv-num">${k + 1}</span>${esc(s.title)}${s.hard ? ` <span class="pv-hard">hard</span>` : ""}</div>
     ${s.note ? `<div class="pv-note">${esc(s.note)}</div>` : ""}
@@ -59,7 +60,7 @@ export function mountProofView(el, proof, opts) {
       <div class="pv-bar">
         <div class="pv-toggle" role="group" aria-label="Proof layout">${MODES.map((m) => `<button type="button" data-mode="${m}" class="${m === mode ? "on" : ""}" aria-pressed="${m === mode}">${MODE_LABEL[m]}</button>`).join("")}</div>
         <button type="button" class="pv-all">${compact ? "Show all Lean" : "Compact Lean"}</button>
-        <span class="small muted">${segs.length} steps · <a href="${sourceUrl(proof.file, proof.from, proof.to)}" target="_blank" rel="noopener">${esc(proof.file.split("/").pop())} lines ${proof.from}–${proof.to}</a></span>
+        <span class="small muted">${segs.length} steps · <span class="srclink"><a href="${sourceUrl(proof.file, proof.from, proof.to)}" title="open the whole proof in the highlighted source">${esc(proof.file.split("/").pop())} lines ${proof.from}–${proof.to}</a>${githubSourceUrl ? `<a class="gh" href="${githubSourceUrl(proof.file, proof.from, proof.to)}" target="_blank" rel="noopener" title="the same lines on GitHub">GitHub ↗</a>` : ""}</span></span>
       </div>`;
     let body;
     if (mode === "panes") {

@@ -141,8 +141,11 @@ changes, fix the line ranges and regenerate.
 
 Badges are shown to readers, so be honest: `explainer` only for English taken from the node's
 reviewed explainer, `comment` for a comment in the Lean source, `draft` for anything else (including
-a new step you wrote for a reviewed node). Links from the proof view to source lines go through
-`site/assets/source.js` (`sourceUrl`), the one place to change when source pages move.
+a new step you wrote for a reviewed node). Every link to source lines on the site (node pages, the
+node list, start cards, walkthrough and proof-view steps, "File.lean lines a–b" in node text, the
+source pages themselves) goes through `site/assets/source.js`: `sourceUrl` gives the on-site
+rendered page `src/<path>.lean.html#L<a>-L<b>`, `githubSourceUrl` the small secondary GitHub link.
+`npm test` fails on a hand-built source URL; `npm run test:source` checks every link resolves.
 
 **A demo must match the Lean.** Where it can only check finitely much (words up to length
 n, one hand-picked `E`, a toy monoid), say so under `caveats` and call it evidence.
@@ -199,6 +202,28 @@ python3 site/tools/build_decls.py              # writes site/data/decls.json
 
 Generated helpers (recursors, `match_` / `proof_` auxiliaries, equation lemmas) are
 folded into the declaration they belong to.
+
+## The browsable source (`src/`)
+
+The site also publishes every `.lean` file of this repo, highlighted, at
+`src/<path>.lean.html` (Mathlib is not copied; its names link to the Mathlib docs).
+`#L9-L28` on such a page highlights those lines. Every place the site names Lean lines
+links there: the node pages' "Main.lean lines 9–28", the start page, the node list,
+walkthrough steps, and any `` `File.lean` `` or "File.lean, lines a-b" written in a node
+(see `site/tools/srcrefs.mjs`). Each declaration in the source has a ¶ badge back to its
+node page.
+
+`npm run build` renders it (`site/tools/build_source.mjs`). Identifier links come from
+Lean's own cross-references, `site/data/xref.json`, which is committed like `decls.raw.json`
+and only needs regenerating when the Lean changes (seconds, after `lake build`):
+
+```sh
+lake build && python3 site/tools/build_xref.py   # writes site/data/xref.json from .lake/build/**/*.ilean
+cd site && npm run test:source                   # every source link resolves; xref matches the sources
+```
+
+CI fails if `xref.json` is stale for a file. A walkthrough step whose `lean:` is not
+verbatim in the source gets a build warning and links to its nearest line.
 
 ## Discussion
 

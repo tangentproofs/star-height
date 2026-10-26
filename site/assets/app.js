@@ -3,13 +3,15 @@ import { mountWidget } from "./widgets.js";
 import { migrateProgress, emptyProgress, ownStatus, makeUnderstood, STATUS_ORDER, STATUS_LABEL, COLORS, PENDING_COLOR, quizScore, recordQuizResults, starString } from "./progress.js";
 import { wrapLeanLines } from "./leanlines.js";
 import { statementSet } from "./statement.js";
-import { REPO, sourceUrl, githubSourceUrl } from "./source.js";
+import { REPO, sourceUrl, githubSourceUrl, sourceLabel } from "./source.js";
 import { mountProofView } from "./proofview.js";
-
 const GISCUS = { repo: REPO, repoId: "R_kgDOVTDFdg", category: "Announcements", categoryId: "DIC_kwDOVTDFds4DJUY1" };
 const MATHLIB_DOCS = (n) => `https://leanprover-community.github.io/mathlib4_docs/find/?pattern=${encodeURIComponent(n)}#doc`;
 const app = document.getElementById("app");
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// "Main.lean lines 9–28" → the rendered, highlighted lines on this site (src/…), plus a small GitHub link.
+const srcLink = (d, cls = "small muted") => `<span class="srclink ${cls}"><a href="${sourceUrl(d.file, d.line, d.endLine)}" title="${esc(d.file)}: open the highlighted source on this site">${esc(sourceLabel(d.file, d.line, d.endLine))}</a>
+  <a class="gh" href="${githubSourceUrl(d.file, d.line, d.endLine)}" target="_blank" rel="noopener" title="the same lines on GitHub">GitHub ↗</a></span>`;
 
 const [decls, nodes, proofs] = await Promise.all([
   fetch("data/decls.json").then((r) => r.json()),
@@ -269,7 +271,6 @@ function nodePage(id) {
   const r = rec(id);
   if (!r.viewed) { r.viewed = Date.now(); save(); }
   const links = linkMap([...d.meaningDeps, ...d.proofDeps, id]);
-  const src = sourceUrl(d.file, d.line, d.endLine);
   const editUrl = n ? `https://github.com/${REPO}/edit/main/site/nodes/${encodeURIComponent(id)}.md`
     : `https://github.com/${REPO}/new/main/site/nodes?filename=${encodeURIComponent(id)}.md`;
   const lean = wrapLeanLines(highlight(d.statement, links), d.statement, d.truncated ? `<span class="cm"> := … (proof omitted)</span>` : "");
@@ -295,7 +296,7 @@ function nodePage(id) {
       <section class="sbs-formal"><div class="sbs-formal-inner">
         <h2>Formal statement</h2>
         <pre class="lean wrap">${lean}</pre>
-        <p class="small muted"><a href="${src}" target="_blank" rel="noopener">${esc(d.file)} lines ${d.line}–${d.endLine}</a>
+        <p class="small muted">${srcLink(d, "")}
         ${d.variables.length ? ` · section variables in scope: <code>${esc(d.variables.join("  "))}</code>` : ""}</p>
         <div class="small">
           <div><b>Mentions</b> (understand these first): <div class="deps">${depLinks(d.meaningDeps)}</div></div>
@@ -312,7 +313,7 @@ function nodePage(id) {
   document.documentElement.style.setProperty("--hdr", (document.querySelector("header.top")?.offsetHeight || 0) + "px");
   if (proofs[id]) mountProofView(document.getElementById("proof-view"), proofs[id], {
     highlight: (s) => highlight(s, links), nodeHref: (x) => `#/node/${encodeURIComponent(x)}`,
-    sourceUrl, storageKey: "star-height-proofview",
+    sourceUrl, githubSourceUrl, storageKey: "star-height-proofview",
   });
   const plain = document.getElementById("plain");
   const c = document.getElementById("content");
@@ -436,12 +437,14 @@ function listPage(fileFilter) {
   const file = fileFilter || q.get("file");
   const rows = decls.filter((d) => !file || d.module === file)
     .sort((a, b) => (!!nodes[b.id] - !!nodes[a.id]) || ((a.depth ?? 99) - (b.depth ?? 99)) || a.id.localeCompare(b.id));
+  const fileDecl = file && rows[0];
   app.innerHTML = `<h1>${file ? `Declarations in ${esc(file)}.lean` : "All declarations"}</h1>
+    ${fileDecl ? `<p class="small"><a href="${sourceUrl(fileDecl.file)}">Read ${esc(file)}.lean, highlighted →</a></p>` : ""}
     <p class="muted">${Object.keys(nodes).length} with explainers, ${decls.length - Object.keys(nodes).length} awaiting one. ${file ? `<a href="#/nodes">show all</a>` : ""}
     Agents: the work list is <a href="data/needs-explainer.json">data/needs-explainer.json</a>.</p>
     <input type="text" id="flt" placeholder="filter…" style="max-width:20rem">
     <table class="node-list"><thead><tr><th>declaration</th><th>kind</th><th>status</th><th>distance from main</th><th>file</th></tr></thead>
-    <tbody>${rows.map((d) => `<tr data-id="${esc(d.id.toLowerCase())}"><td><a href="#/node/${encodeURIComponent(d.id)}">${esc(d.id)}</a></td><td><span class="pill kind-${d.kind}">${d.kind}</span></td><td><span class="pill st-${status(d.id)}">${statusLabel(d.id)}</span></td><td>${d.depth ?? "—"}</td><td class="small muted">${d.module}</td></tr>`).join("")}</tbody></table>`;
+    <tbody>${rows.map((d) => `<tr data-id="${esc(d.id.toLowerCase())}"><td><a href="#/node/${encodeURIComponent(d.id)}">${esc(d.id)}</a></td><td><span class="pill kind-${d.kind}">${d.kind}</span></td><td><span class="pill st-${status(d.id)}">${statusLabel(d.id)}</span></td><td>${d.depth ?? "—"}</td><td class="small"><a class="muted" href="${sourceUrl(d.file, d.line, d.endLine)}" title="${esc(sourceLabel(d.file, d.line, d.endLine))}">${d.module}</a></td></tr>`).join("")}</tbody></table>`;
   document.getElementById("flt").oninput = (e) => {
     const v = e.target.value.toLowerCase();
     app.querySelectorAll("tbody tr").forEach((tr) => (tr.style.display = tr.dataset.id.includes(v) ? "" : "none"));
@@ -464,6 +467,7 @@ function stmtCard(id, headline) {
     </div>
     ${n ? `<p class="eli5 one">${n.summaryHtml}</p>` : ""}
     <pre class="lean wrap">${lean}</pre>
+    <div>${srcLink(d)}</div>
   </div>`;
 }
 function startPage() {
@@ -519,6 +523,7 @@ function aboutPage() {
   <li>Each node is one Lean declaration, extracted automatically from the compiled proof (${decls.length} of them, ${reachable.length} used by <code>main</code>).</li>
   <li>A node with an explainer has the verbatim Lean, a plain-English reading, sometimes an interactive demo, and a quiz with an answer key.</li>
   <li>You can tick <b>I understand</b> on a node whenever you like; the quiz is optional. A node's colour shows its own progress in three greens: lightest when you've ticked it, middle when you've passed its quiz, darkest when you've done both. It counts as <b>understood</b> once you've ticked it <i>and</i> every project declaration its statement mentions is understood. For a definition, the body counts as part of the statement, because the body is what it means. For a theorem only the statement counts, because which proof you use doesn't change what's being claimed.</li>
+  <li>The <a href="src/index.html">Lean source</a> itself is on this site too, highlighted and cross-linked: every “<i>File</i>.lean lines <i>a</i>–<i>b</i>” opens those lines, and every declaration there has a ¶ badge back to its node.</li>
   <li>Mathlib's definitions (<code>Language</code>, <code>Language.IsRegular</code>, …) are taken as given and linked to their documentation.</li>
   <li>Understanding the <i>proof</i> of <code>main</code> means understanding every declaration it uses. The progress bar on the graph page tracks that.</li>
   </ul>

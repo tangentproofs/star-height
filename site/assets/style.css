@@ -251,3 +251,8 @@ pre.lean.pv-lean { margin: 0; }
   .pv-minimap { display: none; }
   .pv-seg { padding-left: 1.3rem; }
 }
+/* links to the rendered source (src/…, tools/build_source.mjs) */
+.srclink a.gh { color: var(--dim); font-size: .8em; margin-left: .5em; border-left: 1px solid var(--line); padding-left: .5em; }
+.srclink a.gh:hover { color: var(--fg); }
+a.srcref { border-bottom: 1px dotted var(--blue); } a.srcref:hover { text-decoration: none; background: var(--panel2); }
+.widget h3 a.srcref { font-weight: 400; }

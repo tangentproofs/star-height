@@ -4,8 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
-    # Lean changes too: data/proofs.json copies proof text from the sources and npm test checks it for drift.
-    paths: ["site/**", "OAI/**", ".github/workflows/site.yml"]
+    # Lean changes too: data/proofs.json copies proof text from the sources (npm test checks it for drift),
+    # and the source pages render the Lean files.
+    paths: ["site/**", "OAI/**", "ComparatorChallenges/**", "Check.lean", ".github/workflows/site.yml"]
   workflow_dispatch:
 
 permissions:
@@ -35,8 +36,10 @@ jobs:
         run: |
           python3 tools/build_decls.py
           git diff --exit-code data/decls.json || { echo "::error::data/decls.json is stale; run python3 site/tools/build_decls.py"; exit 1; }
-      - name: Build
+      - name: Build (node pages + browsable Lean source in dist/src)
         run: npm run build
+      - name: Check source links (every Lean line link resolves; data/xref.json matches the Lean)
+        run: node tools/test_source.mjs
       - uses: actions/upload-pages-artifact@v3
         if: github.event_name != 'pull_request'
         with:
